@@ -678,7 +678,7 @@ header {
   opacity: 0.5;
 }
 
-.delete-btn, .edit-btn {
+.delete-btn, .edit-btn, .export-btn {
   background: transparent;
   color: var(--text-secondary);
   font-size: 1.1rem;
@@ -693,6 +693,14 @@ header {
 
 .edit-btn:hover {
   color: var(--accent-blue);
+}
+
+.export-btn:hover {
+  color: var(--accent-gold);
+}
+
+.export-btn.copied {
+  color: #4ade80;
 }
 
 .empty-state {

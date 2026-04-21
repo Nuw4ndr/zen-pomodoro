@@ -27,6 +27,7 @@ function TaskList({ userId }) {
 
     // Summary expand/collapse state
     const [expandedSummaryIds, setExpandedSummaryIds] = useState(new Set());
+    const [copiedTaskId, setCopiedTaskId] = useState(null);
 
     const toggleSummary = (id) => {
         setExpandedSummaryIds(prev => {
@@ -343,6 +344,18 @@ function TaskList({ userId }) {
         }
     };
 
+    const handleExportTask = async (task) => {
+        const textToCopy = `Task Title: ${task.text}\nTask Summary: ${task.summary || ''}`;
+        try {
+            await navigator.clipboard.writeText(textToCopy);
+            setCopiedTaskId(task.id);
+            setTimeout(() => setCopiedTaskId(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy task context: ', err);
+            setError(`Failed to copy: ${err.message}`);
+        }
+    };
+
     // Separate active and archived tasks
     const activeTasks = tasks.filter(t => !t.archived);
     const archivedTasks = tasks.filter(t => t.archived);
@@ -569,6 +582,13 @@ function TaskList({ userId }) {
                                             title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
                                         >📝</button>
                                     )}
+                                    <button 
+                                        className={`export-btn ${copiedTaskId === task.id ? 'copied' : ''}`} 
+                                        onClick={(e) => { e.stopPropagation(); handleExportTask(task); }} 
+                                        title="Export to Gemini (Forge Keeper)"
+                                    >
+                                        {copiedTaskId === task.id ? '✅' : '📋'}
+                                    </button>
                                     <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
                                     <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
                                     <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>
