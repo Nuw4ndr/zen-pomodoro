@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TaskList from './components/TaskList';
 import QuoteManager from './components/QuoteManager';
+import { db, auth, googleProvider } from './firebase';
+import { collection, onSnapshot, query, addDoc, getDocs, where } from 'firebase/firestore';
+import { signInWithPopup, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import './App.css';
 
 const MODES = {
@@ -26,17 +29,88 @@ function App() {
   const [mode, setMode] = useState('POMODORO');
   const [timeLeft, setTimeLeft] = useState(MODES.POMODORO.minutes * 60);
   const [isActive, setIsActive] = useState(false);
-  const [quotes, setQuotes] = useState(() => {
-    const saved = localStorage.getItem('pomodoro-quotes');
-    return saved ? JSON.parse(saved) : DEFAULT_QUOTES;
-  });
+  const [quotes, setQuotes] = useState([]);
   const [quote, setQuote] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [user, setUser] = useState(null);
   const audioRef = useRef(null);
 
+  // Listen for auth state changes
   useEffect(() => {
-    localStorage.setItem('pomodoro-quotes', JSON.stringify(quotes));
-  }, [quotes]);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        signInAnonymously(auth).catch(err => console.error("Guest login failed:", err));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Listen to quotes from Firestore
+  useEffect(() => {
+    if (!user) {
+      setQuotes(DEFAULT_QUOTES.map((text, index) => ({ id: `default-${index}`, text })));
+      return;
+    }
+
+    const q = query(
+      collection(db, 'quotes'),
+      where('userId', '==', user.uid)
+    );
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      if (querySnapshot.empty) {
+        // Seed default quotes if empty for this user
+        seedDefaultQuotes(user.uid);
+        setQuotes(DEFAULT_QUOTES.map((text, index) => ({ id: `default-${index}`, text })));
+      } else {
+        const quotesArray = [];
+        querySnapshot.forEach((doc) => {
+          quotesArray.push({ id: doc.id, ...doc.data() });
+        });
+        setQuotes(quotesArray);
+      }
+    }, (error) => {
+      console.error("Error listening to quotes: ", error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const seedDefaultQuotes = async (userId) => {
+    try {
+      // Check again if empty before seeding to avoid duplicates
+      const q = query(collection(db, 'quotes'), where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        for (const text of DEFAULT_QUOTES) {
+          await addDoc(collection(db, 'quotes'), {
+            text,
+            createdAt: new Date(),
+            isDefault: true,
+            userId: userId
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error seeding quotes: ", error);
+    }
+  };
+
+  const login = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Error logging in: ", error);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error logging out: ", error);
+    }
+  };
 
   useEffect(() => {
     let interval = null;
@@ -59,7 +133,7 @@ function App() {
   const toggleTimer = () => {
     if (!isActive) {
       const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      setQuote(randomQuote || 'Stay focused!');
+      setQuote(randomQuote?.text || randomQuote || 'Stay focused!');
     }
     setIsActive(!isActive);
   };
@@ -85,6 +159,25 @@ function App() {
     <div className="app-container">
       <header>
         <h1>ZenPomodoro</h1>
+        <div className="auth-controls">
+          {user ? (
+            <div className="user-info">
+              {user.isAnonymous ? (
+                <>
+                  <span className="guest-badge">Guest Mode</span>
+                  <button className="auth-btn highlight" onClick={login}>Login with Google</button>
+                </>
+              ) : (
+                <>
+                  <span>{user.displayName}</span>
+                  <button className="auth-btn" onClick={logout}>Logout</button>
+                </>
+              )}
+            </div>
+          ) : (
+            <span className="loading-auth">Connecting...</span>
+          )}
+        </div>
       </header>
 
       <div className="main-content">
@@ -93,7 +186,7 @@ function App() {
             ⚙️
           </button>
           <div className="hero-image-container">
-            <img src="/hourglass-icon.png" alt="Aesthetic Hourglass" className="hero-image" />
+            <img src="hourglass-icon.png" alt="Aesthetic Hourglass" className="hero-image" />
           </div>
           <div className="mode-selector">
             {Object.keys(MODES).map((m) => (
@@ -123,7 +216,7 @@ function App() {
           </div>
         </main>
 
-        <TaskList />
+        <TaskList userId={user?.uid} />
       </div>
 
       {showSettings && (
@@ -131,6 +224,7 @@ function App() {
           quotes={quotes}
           onUpdate={setQuotes}
           onClose={() => setShowSettings(false)}
+          userId={user?.uid}
         />
       )}
 

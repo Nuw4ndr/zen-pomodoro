@@ -1,33 +1,60 @@
 import React, { useState } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
-function QuoteManager({ quotes, onUpdate, onClose }) {
+function QuoteManager({ quotes, onClose, userId }) {
     const [editingIndex, setEditingIndex] = useState(null);
     const [newQuote, setNewQuote] = useState('');
     const [editText, setEditText] = useState('');
 
-    const addQuote = (e) => {
+    const addQuote = async (e) => {
         e.preventDefault();
         if (newQuote.trim()) {
-            onUpdate([...quotes, newQuote.trim()]);
-            setNewQuote('');
+            try {
+                await addDoc(collection(db, 'quotes'), {
+                    text: newQuote.trim(),
+                    createdAt: new Date(),
+                    userId: userId
+                });
+                setNewQuote('');
+            } catch (error) {
+                console.error("Error adding quote: ", error);
+            }
         }
     };
 
-    const deleteQuote = (index) => {
-        const updated = quotes.filter((_, i) => i !== index);
-        onUpdate(updated);
+    const deleteQuote = async (quote) => {
+        if (!quote.id || quote.id.startsWith('default-')) {
+            alert("Default quotes cannot be deleted. Add your own quotes to manage them!");
+            return;
+        }
+        try {
+            await deleteDoc(doc(db, 'quotes', quote.id));
+        } catch (error) {
+            console.error("Error deleting quote: ", error);
+        }
     };
 
     const startEdit = (index) => {
+        const quote = quotes[index];
+        if (!quote.id || quote.id.startsWith('default-')) {
+            alert("Default quotes cannot be edited. Add your own quotes to manage them!");
+            return;
+        }
         setEditingIndex(index);
-        setEditText(quotes[index]);
+        setEditText(quote.text);
     };
 
-    const saveEdit = (index) => {
-        const updated = [...quotes];
-        updated[index] = editText.trim();
-        onUpdate(updated);
-        setEditingIndex(null);
+    const saveEdit = async (id) => {
+        try {
+            const quoteRef = doc(db, 'quotes', id);
+            await updateDoc(quoteRef, {
+                text: editText.trim()
+            });
+            setEditingIndex(null);
+        } catch (error) {
+            console.error("Error updating quote: ", error);
+        }
     };
 
     return (
@@ -49,30 +76,37 @@ function QuoteManager({ quotes, onUpdate, onClose }) {
                 </form>
 
                 <ul className="quote-list">
-                    {quotes.map((q, index) => (
-                        <li key={index} className="quote-item">
-                            {editingIndex === index ? (
-                                <div className="edit-container">
-                                    <input
-                                        type="text"
-                                        value={editText}
-                                        onChange={(e) => setEditText(e.target.value)}
-                                        autoFocus
-                                    />
-                                    <button onClick={() => saveEdit(index)}>Save</button>
-                                    <button onClick={() => setEditingIndex(null)}>Cancel</button>
-                                </div>
-                            ) : (
-                                <>
-                                    <span className="quote-text">{q}</span>
-                                    <div className="quote-actions">
-                                        <button onClick={() => startEdit(index)}>Edit</button>
-                                        <button className="delete-btn" onClick={() => deleteQuote(index)}>Delete</button>
+                    {quotes.map((q, index) => {
+                        const isDefault = !q.id || q.id.startsWith('default-');
+                        const text = q.text || q;
+
+                        return (
+                            <li key={q.id || index} className="quote-item">
+                                {editingIndex === index ? (
+                                    <div className="edit-container">
+                                        <input
+                                            type="text"
+                                            value={editText}
+                                            onChange={(e) => setEditText(e.target.value)}
+                                            autoFocus
+                                        />
+                                        <button onClick={() => saveEdit(q.id)}>Save</button>
+                                        <button onClick={() => setEditingIndex(null)}>Cancel</button>
                                     </div>
-                                </>
-                            )}
-                        </li>
-                    ))}
+                                ) : (
+                                    <>
+                                        <span className="quote-text">{text} {isDefault && <small>(Default)</small>}</span>
+                                        {!isDefault && (
+                                            <div className="quote-actions">
+                                                <button onClick={() => startEdit(index)}>Edit</button>
+                                                <button className="delete-btn" onClick={() => deleteQuote(q)}>Delete</button>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </li>
+                        );
+                    })}
                 </ul>
             </div>
         </div>
