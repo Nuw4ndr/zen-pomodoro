@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TaskList from './components/TaskList';
+import PlaylistManager from './components/PlaylistManager';
 import QuoteManager from './components/QuoteManager';
 import { db, auth, googleProvider } from './firebase';
 import { collection, onSnapshot, query, addDoc, getDocs, where } from 'firebase/firestore';
@@ -26,14 +27,26 @@ const DEFAULT_QUOTES = [
 ];
 
 function App() {
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [mode, setMode] = useState('POMODORO');
   const [timeLeft, setTimeLeft] = useState(MODES.POMODORO.minutes * 60);
   const [isActive, setIsActive] = useState(false);
   const [quotes, setQuotes] = useState([]);
   const [quote, setQuote] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [showPlaylists, setShowPlaylists] = useState(() => localStorage.getItem('showPlaylists') !== 'false');
   const [user, setUser] = useState(null);
   const audioRef = useRef(null);
+
+  // Handle theme changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   // Listen for auth state changes
   useEffect(() => {
@@ -159,64 +172,81 @@ function App() {
     <div className="app-container">
       <header>
         <h1>ZenPomodoro</h1>
-        <div className="auth-controls">
-          {user ? (
-            <div className="user-info">
-              {user.isAnonymous ? (
-                <>
-                  <span className="guest-badge">Guest Mode</span>
-                  <button className="auth-btn highlight" onClick={login}>Login with Google</button>
-                </>
-              ) : (
-                <>
-                  <span>{user.displayName}</span>
-                  <button className="auth-btn" onClick={logout}>Logout</button>
-                </>
-              )}
-            </div>
-          ) : (
-            <span className="loading-auth">Connecting...</span>
-          )}
+        <div className="header-actions">
+          <button className="theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+          <button
+            className={`theme-toggle ${showPlaylists ? 'active' : ''}`}
+            onClick={() => {
+              setShowPlaylists(prev => {
+                localStorage.setItem('showPlaylists', !prev);
+                return !prev;
+              });
+            }}
+            title={showPlaylists ? 'Hide playlists' : 'Show playlists'}
+          >
+            🎵
+          </button>
+          <div className="auth-controls">
+            {user ? (
+              <div className="user-info">
+                {user.isAnonymous ? (
+                  <>
+                    <span className="guest-badge">Guest Mode</span>
+                    <button className="auth-btn highlight" onClick={login}>Login with Google</button>
+                  </>
+                ) : (
+                  <>
+                    <span>{user.displayName}</span>
+                    <button className="auth-btn" onClick={logout}>Logout</button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <span className="loading-auth">Connecting...</span>
+            )}
+          </div>
         </div>
       </header>
 
-      <div className="main-content">
-        <main className="glass-card timer-card">
+      <main className="glass-card timer-card compact">
           <button className="settings-btn" onClick={() => setShowSettings(true)} title="Manage Quotes">
             ⚙️
           </button>
-          <div className="hero-image-container">
-            <img src="hourglass-icon.png" alt="Aesthetic Hourglass" className="hero-image" />
-          </div>
-          <div className="mode-selector">
-            {Object.keys(MODES).map((m) => (
-              <button
-                key={m}
-                className={`mode-btn ${mode === m ? 'active' : ''}`}
-                onClick={() => switchMode(m)}
-              >
-                {MODES[m].label}
-              </button>
-            ))}
-          </div>
+          <div className="timer-row">
+            <div className="mode-selector">
+              {Object.keys(MODES).map((m) => (
+                <button
+                  key={m}
+                  className={`mode-btn ${mode === m ? 'active' : ''}`}
+                  onClick={() => switchMode(m)}
+                >
+                  {MODES[m].label}
+                </button>
+              ))}
+            </div>
 
-          <div className="timer-display">
-            <span>{formatTime(timeLeft)}</span>
+            <div className="timer-display">
+              <span>{formatTime(timeLeft)}</span>
+            </div>
+
+            <div className="controls">
+              <button className="primary-btn" onClick={toggleTimer}>
+                {isActive ? 'Pause' : 'Start'}
+              </button>
+              <button className="secondary-btn" onClick={resetTimer}>
+                Reset
+              </button>
+            </div>
           </div>
 
           {quote && <p className="quote fade-in">"{quote}"</p>}
-
-          <div className="controls">
-            <button className="primary-btn" onClick={toggleTimer}>
-              {isActive ? 'Pause' : 'Start'}
-            </button>
-            <button className="secondary-btn" onClick={resetTimer}>
-              Reset
-            </button>
-          </div>
         </main>
 
+      <div className={`main-content ${!showPlaylists ? 'tasks-only' : ''}`}>
         <TaskList userId={user?.uid} />
+        {showPlaylists && <PlaylistManager userId={user?.uid} />}
       </div>
 
       {showSettings && (

@@ -1,23 +1,54 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap');
 
 :root {
-  /* Ocean Breeze / Zen Palette */
-  --bg-color: #f0f4f8;
-  --text-primary: #2d3a4b;
-  --text-secondary: #617d98;
-  --accent-blue: #829ab1;
-  --accent-teal: #9eb3c2;
-  --card-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.3);
-  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+  /* Manfred and the Alpine Witch Palette (Dark - Default) */
+  --bg-color: #0d0f12; /* Deep, dark blue-grey/black shadows */
+  --bg-gradient-top: #1a202c;
+  --text-primary: #e8e6e3; /* Ethereal off-white mist */
+  --text-secondary: #a8a29e; /* Warm, rocky grey/brown */
+  --accent-gold: #d4a356; /* The glowing cave light */
+  --accent-mist: #829ab1; /* Ethereal sky blue */
+  --accent-highlight: #ffffff; /* Alpine Witch spark */
+  
+  --card-bg: rgba(22, 24, 28, 0.85); /* Darker, more solid glass */
+  --glass-border: rgba(212, 163, 86, 0.15); /* Subtle golden tint */
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  
+  --glass-highlight: rgba(255, 255, 255, 0.05);
+  --glass-hover: rgba(255, 255, 255, 0.8);
+  --badge-bg: rgba(255, 255, 255, 0.05);
+  --shadow-color: rgba(0, 0, 0, 0.3);
 
-  /* Modes */
-  --work-color: #6a994e;
-  --short-break-color: #a7c957;
-  --long-break-color: #386641;
+  /* Modes - Inspired by the painting's moods */
+  --work-color: #8b4513; /* Earthy brown cliffs */
+  --short-break-color: #d4a356; /* Golden glow */
+  --long-break-color: #4a5d6e; /* Distant misty mountains */
 
   --font-main: 'Outfit', sans-serif;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='light'] {
+  --bg-color: #fdfcfb;
+  --bg-gradient-top: #f5f7fa;
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --accent-gold: #b8860b;
+  --accent-mist: #cbd5e0;
+  --accent-highlight: #000000;
+  
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(184, 134, 11, 0.2);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+
+  --glass-highlight: rgba(0, 0, 0, 0.03);
+  --glass-hover: rgba(0, 0, 0, 0.06);
+  --badge-bg: rgba(0, 0, 0, 0.05);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+
+  --work-color: #a0522d;
+  --short-break-color: #b8860b;
+  --long-break-color: #718096;
 }
 
 * {
@@ -28,13 +59,14 @@
 
 body {
   font-family: var(--font-main);
-  background-color: var(--bg-color);
+  background: radial-gradient(circle at top right, var(--bg-gradient-top) 0%, var(--bg-color) 70%);
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: 2rem 0;
   transition: var(--transition);
 }
 
