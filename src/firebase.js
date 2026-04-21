@@ -6,12 +6,12 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 // TODO: Replace the following with your app's Firebase project configuration
 // You can find this in your Firebase project settings
 const firebaseConfig = {
-    apiKey: "AIzaSyAwUZc96Zf-bCKd6zdLilWDn2H-p3xggsc",
-    authDomain: "zen-pomodoro-f3f8c.firebaseapp.com",
-    projectId: "zen-pomodoro-f3f8c",
-    storageBucket: "zen-pomodoro-f3f8c.firebasestorage.app",
-    messagingSenderId: "266792876377",
-    appId: "1:266792876377:web:559648860f71afb6967448"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
