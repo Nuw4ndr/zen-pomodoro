@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import {
     collection,
@@ -28,6 +28,23 @@ function TaskList({ userId }) {
     // Summary expand/collapse state
     const [expandedSummaryIds, setExpandedSummaryIds] = useState(new Set());
     const [copiedTaskId, setCopiedTaskId] = useState(null);
+    const summaryRef = useRef(null);
+
+    // Auto-expand summary textarea
+    const adjustTextareaHeight = () => {
+        if (summaryRef.current) {
+            summaryRef.current.style.height = 'auto';
+            summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
+        }
+    };
+
+    useEffect(() => {
+        if (editingTaskId) {
+            // Use a small timeout to ensure the DOM has rendered the textarea
+            const timer = setTimeout(adjustTextareaHeight, 0);
+            return () => clearTimeout(timer);
+        }
+    }, [editSummaryValue, editingTaskId]);
 
     const toggleSummary = (id) => {
         setExpandedSummaryIds(prev => {
@@ -472,11 +489,11 @@ function TaskList({ userId }) {
                                         onKeyDown={(e) => e.key === 'Escape' && setEditingTaskId(null)}
                                     />
                                     <textarea
+                                        ref={summaryRef}
                                         className="edit-task-summary"
                                         value={editSummaryValue}
                                         onChange={(e) => setEditSummaryValue(e.target.value)}
                                         placeholder="Summary / status update (optional)…"
-                                        rows={2}
                                         onKeyDown={(e) => e.key === 'Escape' && setEditingTaskId(null)}
                                     />
                                 </div>
