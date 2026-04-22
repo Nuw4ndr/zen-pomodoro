@@ -4,6 +4,7 @@
   gap: 1rem;
   width: 100%;
   max-width: 1000px;
+  margin: 0 auto;
 }
 
 header {
@@ -11,6 +12,8 @@ header {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .header-actions {
@@ -57,6 +60,35 @@ header {
   gap: 1rem;
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+@media (max-width: 600px) {
+  header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  header h1 {
+    margin-bottom: 0;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .user-info {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+
+  .auth-controls {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .auth-btn {
