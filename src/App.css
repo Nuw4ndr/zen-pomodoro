@@ -100,16 +100,16 @@ header {
   align-items: flex-start;
 }
 
-.main-content > .task-list-container {
+.main-content>.task-list-container {
   flex: 2;
   margin-top: 0;
 }
 
-.main-content > .playlist-manager {
+.main-content>.playlist-manager {
   flex: 1;
 }
 
-.main-content.tasks-only > .task-list-container {
+.main-content.tasks-only>.task-list-container {
   flex: 1;
   width: 100%;
 }
@@ -236,7 +236,7 @@ header {
     gap: 1rem;
   }
 
-  .main-content > .side-bar {
+  .main-content>.side-bar {
     max-height: none;
     overflow-y: visible;
     padding-right: 0;
@@ -447,7 +447,8 @@ header {
 .player-wrapper {
   position: relative;
   width: 100%;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  padding-top: 56.25%;
+  /* 16:9 Aspect Ratio */
   background: #000;
   border-radius: 15px;
   overflow: hidden;
@@ -538,6 +539,7 @@ header {
   color: white;
   transform: scale(1.1);
 }
+
 .task-list-container {
   margin-top: 2rem;
   padding: 1.5rem;
@@ -678,7 +680,9 @@ header {
   opacity: 0.5;
 }
 
-.delete-btn, .edit-btn, .export-btn {
+.delete-btn,
+.edit-btn,
+.export-btn {
   background: transparent;
   color: var(--text-secondary);
   font-size: 1.1rem;
@@ -1280,35 +1284,39 @@ header {
 
   .task-content-wrapper {
     flex: 1;
-    min-width: calc(100% - 100px); /* Ensure it takes most of the space on row 1 */
+    min-width: calc(100% - 100px);
+    /* Ensure it takes most of the space on row 1 */
     cursor: pointer;
   }
 
   .task-text {
     font-size: 1rem;
     line-height: 1.4;
-    word-break: break-word; /* Better than break-all */
+    word-break: break-word;
+    /* Better than break-all */
   }
 
   .task-actions {
     width: 100%;
-    opacity: 1 !important; /* Always show icons on mobile for better accessibility */
+    opacity: 1 !important;
+    /* Always show icons on mobile for better accessibility */
     margin-top: 0.5rem;
     padding-top: 0.6rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.8rem;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
   }
 
   .task-actions-group {
-    gap: 1.2rem; /* More space between icons for easier tapping on mobile */
+    gap: 0.6rem; /* Reduced to ensure all icons fit on one line */
   }
 
   .task-actions button {
-    font-size: 1.2rem; /* Larger icons for mobile */
+    font-size: 1.2rem;
+    /* Larger icons for mobile */
     padding: 0.4rem;
   }
 
