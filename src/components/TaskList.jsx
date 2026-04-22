@@ -522,8 +522,10 @@ function TaskList({ userId }) {
                                             title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
                                         >📝</button>
                                     )}
-                                    <button className="restore-btn" onClick={() => restoreTask(task.id)} title="Restore task">📤</button>
-                                    <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete permanently">×</button>
+                                    <div className="task-actions-group">
+                                        <button className="restore-btn" onClick={() => restoreTask(task.id)} title="Restore task">📤</button>
+                                        <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete permanently">×</button>
+                                    </div>
                                 </div>
                             </>
                         ) : (
@@ -582,16 +584,18 @@ function TaskList({ userId }) {
                                             title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
                                         >📝</button>
                                     )}
-                                    <button 
-                                        className={`export-btn ${copiedTaskId === task.id ? 'copied' : ''}`} 
-                                        onClick={(e) => { e.stopPropagation(); handleExportTask(task); }} 
-                                        title="Export to Gemini (Forge Keeper)"
-                                    >
-                                        {copiedTaskId === task.id ? '✅' : '📋'}
-                                    </button>
-                                    <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
-                                    <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
-                                    <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>
+                                    <div className="task-actions-group">
+                                        <button 
+                                            className={`export-btn ${copiedTaskId === task.id ? 'copied' : ''}`} 
+                                            onClick={(e) => { e.stopPropagation(); handleExportTask(task); }} 
+                                            title="Export to Gemini (Forge Keeper)"
+                                        >
+                                            {copiedTaskId === task.id ? '✅' : '📋'}
+                                        </button>
+                                        <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
+                                        <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
+                                        <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>
+                                    </div>
                                 </div>
                             </>
                         )}
