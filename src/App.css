@@ -879,9 +879,17 @@ header {
   padding: 0.4rem 0.8rem;
   border-radius: 8px;
   border: 1px solid var(--accent-blue);
-  background: white;
+  background: var(--glass-highlight);
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.edit-task-title:focus {
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
 }
 
 .edit-task-summary {
@@ -889,21 +897,22 @@ header {
   padding: 0.6rem 0.8rem;
   border-radius: 8px;
   border: 1px solid var(--glass-border);
-  background: white;
+  background: var(--glass-highlight);
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 0.85rem;
-  color: var(--text-secondary);
   resize: none;
   line-height: 1.5;
   min-height: 60px;
   overflow: hidden;
   box-sizing: border-box;
   display: block;
-  transition: border-color 0.2s ease;
+  transition: var(--transition);
 }
 
 .edit-task-summary:focus {
   border-color: var(--accent-blue);
+  background: rgba(255, 255, 255, 0.08);
   outline: none;
 }
 
