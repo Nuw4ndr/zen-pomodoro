@@ -21,6 +21,7 @@ function TaskList({ userId }) {
     
     // Tag and Edit State
     const [filterTag, setFilterTag] = useState('');
+    const [filterDate, setFilterDate] = useState('');
     const [editingTaskId, setEditingTaskId] = useState(null);
     const [editValue, setEditValue] = useState('');
     const [editSummaryValue, setEditSummaryValue] = useState('');
@@ -69,6 +70,12 @@ function TaskList({ userId }) {
         const ampm = hours >= 12 ? 'pm' : 'am';
         hours = hours % 12 || 12;
         return `${day} ${date} ${month} ${year} at ${hours}:${minutes} ${ampm}`;
+    };
+
+    const extractDateString = (ts) => {
+        if (!ts) return null;
+        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
     // Archive State
@@ -385,6 +392,13 @@ function TaskList({ userId }) {
             ? baseTasks.filter(t => (t.tags || []).includes(filterTag))
             : [...baseTasks];
 
+        if (filterDate) {
+            result = result.filter(t => {
+                const ts = t.summaryUpdatedAt || t.createdAt;
+                return extractDateString(ts) === filterDate;
+            });
+        }
+
         if (voteSortOrder === 'desc') {
             result.sort((a, b) => (b.votes || 0) - (a.votes || 0));
         } else if (voteSortOrder === 'asc') {
@@ -393,6 +407,33 @@ function TaskList({ userId }) {
 
         return result;
     })();
+
+    const handleExportFilteredTasks = () => {
+        if (filteredTasks.length === 0) return;
+
+        let markdownContent = `# Tasks Export\n\n`;
+        filteredTasks.forEach(task => {
+            markdownContent += `## Task Title: ${task.text}\n`;
+            if (task.summary) {
+                markdownContent += `Task Summary: ${task.summary}\n`;
+            }
+            markdownContent += `\n`;
+        });
+
+        const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        const dateStr = filterDate || new Date().toISOString().split('T')[0];
+        const tagStr = filterTag ? `-${filterTag}` : '';
+        a.download = `tasks-export-${dateStr}${tagStr}.md`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <div className="task-list-container">
@@ -407,13 +448,23 @@ function TaskList({ userId }) {
                         {showArchive ? '⬅️ Tasks' : `📁 Archive${archivedTasks.length > 0 ? ` (${archivedTasks.length})` : ''}`}
                     </button>
                     {!showArchive && (
-                        <button
-                            className={`vote-sort-btn ${voteSortOrder !== 'none' ? 'active' : ''}`}
-                            onClick={cycleVoteSort}
-                            title={voteSortLabel}
-                        >
-                            {voteSortOrder === 'desc' ? '🔥 ↓' : voteSortOrder === 'asc' ? '🧊 ↑' : '⇅'}
-                        </button>
+                        <>
+                            <button
+                                className={`vote-sort-btn ${voteSortOrder !== 'none' ? 'active' : ''}`}
+                                onClick={cycleVoteSort}
+                                title={voteSortLabel}
+                            >
+                                {voteSortOrder === 'desc' ? '🔥 ↓' : voteSortOrder === 'asc' ? '🧊 ↑' : '⇅'}
+                            </button>
+                            <button
+                                className="export-all-btn"
+                                onClick={handleExportFilteredTasks}
+                                title="Export filtered tasks to Markdown"
+                                disabled={filteredTasks.length === 0}
+                            >
+                                📋 Export All
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
@@ -430,11 +481,11 @@ function TaskList({ userId }) {
                 </form>
             )}
 
-            {allTags.length > 0 && (
+            {(allTags.length > 0 || baseTasks.length > 0) && (
                 <div className="tag-filter-bar">
                     <button 
-                        className={`tag-filter-btn ${filterTag === '' ? 'active' : ''}`}
-                        onClick={() => setFilterTag('')}
+                        className={`tag-filter-btn ${filterTag === '' && filterDate === '' ? 'active' : ''}`}
+                        onClick={() => { setFilterTag(''); setFilterDate(''); }}
                     >
                         All
                     </button>
@@ -447,6 +498,13 @@ function TaskList({ userId }) {
                             #{tag}
                         </button>
                     ))}
+                    <input 
+                        type="date" 
+                        className="date-filter-input"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        title="Filter by date"
+                    />
                 </div>
             )}
 
@@ -505,13 +563,15 @@ function TaskList({ userId }) {
                         ) : showArchive ? (
                             <>
                                 <div className="task-content-wrapper">
-                                    <span className="task-text">{task.text}</span>
+                                    <div className="task-header-row">
+                                        <span className="task-text">{task.text}</span>
+                                        <span className="task-header-date">
+                                            {formatSummaryDate(task.summaryUpdatedAt || task.createdAt)}
+                                        </span>
+                                    </div>
                                     {expandedSummaryIds.has(task.id) && task.summary && (
                                         <div className="task-summary-block">
                                             <p className="task-summary">{task.summary}</p>
-                                            {task.summaryUpdatedAt && (
-                                                <span className="task-summary-date">Updated {formatSummaryDate(task.summaryUpdatedAt)}</span>
-                                            )}
                                         </div>
                                     )}
                                     {task.tags && task.tags.length > 0 && (
@@ -567,13 +627,15 @@ function TaskList({ userId }) {
                                     </button>
                                 </div>
                                 <div className="task-content-wrapper" onClick={() => toggleTask(task.id, task.completed)}>
-                                    <span className="task-text">{task.text}</span>
+                                    <div className="task-header-row">
+                                        <span className="task-text">{task.text}</span>
+                                        <span className="task-header-date">
+                                            {formatSummaryDate(task.summaryUpdatedAt || task.createdAt)}
+                                        </span>
+                                    </div>
                                     {expandedSummaryIds.has(task.id) && task.summary && (
                                         <div className="task-summary-block">
                                             <p className="task-summary">{task.summary}</p>
-                                            {task.summaryUpdatedAt && (
-                                                <span className="task-summary-date">Updated {formatSummaryDate(task.summaryUpdatedAt)}</span>
-                                            )}
                                         </div>
                                     )}
                                     {task.tags && task.tags.length > 0 && (
