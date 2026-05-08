@@ -369,7 +369,9 @@ function TaskList({ userId }) {
     };
 
     const handleExportTask = async (task) => {
-        const textToCopy = `Task Title: ${task.text}\nTask Summary: ${task.summary || ''}`;
+        const dateStr = formatSummaryDate(task.summaryUpdatedAt || task.createdAt);
+        const dateLine = dateStr ? `\nLast Updated: ${dateStr}` : '';
+        const textToCopy = `Task Title: ${task.text}${dateLine}\nTask Summary: ${task.summary || ''}`;
         try {
             await navigator.clipboard.writeText(textToCopy);
             setCopiedTaskId(task.id);
@@ -414,6 +416,10 @@ function TaskList({ userId }) {
         let markdownContent = `# Tasks Export\n\n`;
         filteredTasks.forEach(task => {
             markdownContent += `## Task Title: ${task.text}\n`;
+            const dateStr = formatSummaryDate(task.summaryUpdatedAt || task.createdAt);
+            if (dateStr) {
+                markdownContent += `Last Updated: ${dateStr}\n`;
+            }
             if (task.summary) {
                 markdownContent += `Task Summary: ${task.summary}\n`;
             }

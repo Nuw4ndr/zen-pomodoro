@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import TaskList from './components/TaskList';
 import PlaylistManager from './components/PlaylistManager';
 import QuoteManager from './components/QuoteManager';
+import StickyNotes from './components/StickyNotes';
 import { db, auth, googleProvider } from './firebase';
 import { collection, onSnapshot, query, addDoc, getDocs, where } from 'firebase/firestore';
 import { signInWithPopup, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
@@ -35,6 +36,7 @@ function App() {
   const [quote, setQuote] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(() => localStorage.getItem('showPlaylists') !== 'false');
+  const [showNotes, setShowNotes] = useState(() => localStorage.getItem('showNotes') === 'true');
   const [user, setUser] = useState(null);
   const audioRef = useRef(null);
 
@@ -188,6 +190,18 @@ function App() {
           >
             🎵
           </button>
+          <button
+            className={`theme-toggle ${showNotes ? 'active' : ''}`}
+            onClick={() => {
+              setShowNotes(prev => {
+                localStorage.setItem('showNotes', !prev);
+                return !prev;
+              });
+            }}
+            title={showNotes ? 'Hide notes' : 'Show notes'}
+          >
+            📌
+          </button>
           <div className="auth-controls">
             {user ? (
               <div className="user-info">
@@ -248,6 +262,12 @@ function App() {
         <TaskList userId={user?.uid} />
         {showPlaylists && <PlaylistManager userId={user?.uid} />}
       </div>
+
+      {showNotes && (
+        <div className="notes-section">
+          <StickyNotes userId={user?.uid} />
+        </div>
+      )}
 
       {showSettings && (
         <QuoteManager

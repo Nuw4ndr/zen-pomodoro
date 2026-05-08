@@ -24,6 +24,12 @@ service cloud.firestore {
       allow read, update, delete: if isOwner(resource.data.userId);
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
+
+    // Rules for notes collection
+    match /notes/{noteId} {
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
     // Rules for playlists collection
     match /playlists/{playlistId} {
       allow read, update, delete: if isOwner(resource.data.userId);
