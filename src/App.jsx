@@ -175,6 +175,9 @@ function App() {
       <header>
         <h1>ZenPomodoro</h1>
         <div className="header-actions">
+          <span className="info-icon" title={`Última actualización: ${typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'Desconocida'}`}>
+            ℹ️
+          </span>
           <button className="theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
