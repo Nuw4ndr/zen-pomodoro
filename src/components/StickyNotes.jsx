@@ -53,19 +53,57 @@ function StickyNotes({ userId }) {
         return () => unsubscribe();
     }, [userId]);
 
-    const addNote = async () => {
+    const addNote = async (extractList = false) => {
         if (!newNoteText.trim()) {
             setIsAdding(false);
             return;
         }
+        
         try {
-            const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
-            await addDoc(collection(db, 'notes'), {
-                text: newNoteText.trim(),
-                userId: userId,
-                createdAt: new Date(),
-                color: randomColor
-            });
+            if (extractList) {
+                const lines = newNoteText.trim().split('\n');
+                const listItems = [];
+                // Matches -, *, or + bullet points, ignoring leading/trailing spaces
+                const bulletRegex = /^\s*[-*+]\s+(.*)/;
+                
+                for (const line of lines) {
+                    const match = line.match(bulletRegex);
+                    if (match) {
+                        listItems.push(match[1].trim());
+                    }
+                }
+                
+                if (listItems.length > 0) {
+                    const promises = listItems.map(itemText => {
+                        const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
+                        return addDoc(collection(db, 'notes'), {
+                            text: itemText,
+                            userId: userId,
+                            createdAt: new Date(),
+                            color: randomColor
+                        });
+                    });
+                    await Promise.all(promises);
+                } else {
+                    // Fallback if no bullet points found
+                    const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
+                    await addDoc(collection(db, 'notes'), {
+                        text: newNoteText.trim(),
+                        userId: userId,
+                        createdAt: new Date(),
+                        color: randomColor
+                    });
+                }
+            } else {
+                const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
+                await addDoc(collection(db, 'notes'), {
+                    text: newNoteText.trim(),
+                    userId: userId,
+                    createdAt: new Date(),
+                    color: randomColor
+                });
+            }
+            
             setNewNoteText('');
             setIsAdding(false);
         } catch (error) {
@@ -137,12 +175,13 @@ function StickyNotes({ userId }) {
                             autoFocus
                             value={newNoteText}
                             onChange={(e) => setNewNoteText(e.target.value)}
-                            placeholder="Type your note here... (Markdown supported)"
+                            placeholder="Type your note here... (Markdown supported)&#10;Paste a list and click 'Extract List' to create multiple notes."
                             rows="6"
                             className="edit-note-textarea"
                         />
                         <div className="note-actions">
-                            <button onClick={addNote} className="note-btn save">Save</button>
+                            <button onClick={() => addNote(false)} className="note-btn save">Save</button>
+                            <button onClick={() => addNote(true)} className="note-btn save" style={{ backgroundColor: 'rgba(116, 185, 255, 0.3)', borderColor: 'rgba(116, 185, 255, 0.6)' }} title="Create a note for each bullet point">Extract List</button>
                             <button onClick={() => { setIsAdding(false); setNewNoteText(''); }} className="note-btn cancel">Cancel</button>
                         </div>
                     </div>
