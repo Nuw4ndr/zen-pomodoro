@@ -36,6 +36,10 @@ function PlaylistManager({ userId }) {
 
     const [activeEmbed, setActiveEmbed] = useState(null);
     const [error, setError] = useState(null);
+    const [isExpanded, setIsExpanded] = useState(() => {
+        const saved = localStorage.getItem('playlistsExpanded');
+        return saved !== 'false'; // Default to true
+    });
 
     // Helper to convert YT Music links to Embed links
     const getYoutubeEmbedLink = (url) => {
@@ -188,15 +192,27 @@ function PlaylistManager({ userId }) {
     return (
         <div className="playlist-manager">
             <div className="section-header">
-                <h3>YouTube Music Playlists</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => {
+                    setIsExpanded(prev => {
+                        const next = !prev;
+                        localStorage.setItem('playlistsExpanded', next);
+                        return next;
+                    });
+                }}>
+                    <span style={{ fontSize: '0.8rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                    <h3 style={{ margin: 0 }}>YouTube Music Playlists</h3>
+                </div>
                 <button
                     className="icon-btn add-btn"
-                    onClick={() => setShowAddForm(!showAddForm)}
+                    onClick={() => { setIsExpanded(true); setShowAddForm(!showAddForm); }}
                     disabled={!userId}
                 >
                     {showAddForm ? '×' : '+'}
                 </button>
             </div>
+
+            {isExpanded && (
+                <>
 
             {error && <div className="error-message">⚠️ {error}</div>}
 
@@ -347,6 +363,8 @@ function PlaylistManager({ userId }) {
             </div>
             {!userId && <p className="message">Please sign in to manage playlists.</p>}
             {userId && playlists.length === 0 && !showAddForm && <p className="message">No playlists yet. Create one!</p>}
+                </>
+            )}
         </div>
     );
 }

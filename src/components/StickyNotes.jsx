@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, addDoc, deleteDoc, doc, updateDoc, where, orderBy } from 'firebase/firestore';
 
@@ -12,13 +12,32 @@ const NOTE_COLORS = [
     'rgba(255, 118, 117, 0.9)', // Red/Pink
 ];
 
-function StickyNotes({ userId }) {
+function StickyNotes({ userId, expandTrigger }) {
     const [notes, setNotes] = useState([]);
     const [error, setError] = useState(null);
     const [isAdding, setIsAdding] = useState(false);
     const [newNoteText, setNewNoteText] = useState('');
     const [editingNoteId, setEditingNoteId] = useState(null);
     const [editNoteText, setEditNoteText] = useState('');
+    
+    const [isExpanded, setIsExpanded] = useState(() => {
+        const saved = localStorage.getItem('notesExpanded');
+        return saved !== 'false'; // Default to true
+    });
+    const panelRef = useRef(null);
+
+    useEffect(() => {
+        if (expandTrigger) {
+            setIsExpanded(true);
+            localStorage.setItem('notesExpanded', 'true');
+            if (panelRef.current) {
+                // Ensure it's scrolled into view smoothly
+                setTimeout(() => {
+                    panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+    }, [expandTrigger]);
 
     useEffect(() => {
         if (!userId) {
@@ -151,24 +170,45 @@ function StickyNotes({ userId }) {
 
     if (!userId) {
         return (
-            <div className="sticky-notes-panel">
+            <div className="sticky-notes-panel" ref={panelRef}>
                  <div className="notes-header">
-                    <h3>Sticky Notes</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => {
+                        setIsExpanded(prev => {
+                            const next = !prev;
+                            localStorage.setItem('notesExpanded', next);
+                            return next;
+                        });
+                    }}>
+                        <span style={{ fontSize: '0.8rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                        <h3 style={{ margin: 0 }}>Sticky Notes</h3>
+                    </div>
                 </div>
-                <div className="empty-state">Please login to view and create notes.</div>
+                {isExpanded && <div className="empty-state">Please login to view and create notes.</div>}
             </div>
         );
     }
 
     return (
-        <div className="sticky-notes-panel">
+        <div className="sticky-notes-panel" ref={panelRef}>
             <div className="notes-header">
-                <h3>Sticky Notes</h3>
-                <button className="add-note-btn" onClick={() => setIsAdding(true)} title="Add a new note">+</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => {
+                    setIsExpanded(prev => {
+                        const next = !prev;
+                        localStorage.setItem('notesExpanded', next);
+                        return next;
+                    });
+                }}>
+                    <span style={{ fontSize: '0.8rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                    <h3 style={{ margin: 0 }}>Sticky Notes</h3>
+                </div>
+                <button className="add-note-btn" onClick={() => setIsExpanded(true) || setIsAdding(true)} title="Add a new note">+</button>
             </div>
-            {error && <div className="error-message"><p>⚠️ {error}</p></div>}
             
-            <div className="notes-grid">
+            {isExpanded && (
+                <>
+                    {error && <div className="error-message"><p>⚠️ {error}</p></div>}
+                    
+                    <div className="notes-grid">
                 {isAdding && (
                     <div className="sticky-note new-note" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                         <textarea
@@ -228,6 +268,8 @@ function StickyNotes({ userId }) {
                     </div>
                 ))}
             </div>
+            </>
+            )}
         </div>
     );
 }

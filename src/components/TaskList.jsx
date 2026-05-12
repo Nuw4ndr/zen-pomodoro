@@ -18,6 +18,10 @@ function TaskList({ userId }) {
     const [error, setError] = useState(null);
     const [draggedTaskId, setDraggedTaskId] = useState(null);
     const [dragOverTaskId, setDragOverTaskId] = useState(null);
+    const [isExpanded, setIsExpanded] = useState(() => {
+        const saved = localStorage.getItem('tasksExpanded');
+        return saved !== 'false'; // Default to true
+    });
     
     // Tag and Edit State
     const [filterTag, setFilterTag] = useState('');
@@ -444,7 +448,16 @@ function TaskList({ userId }) {
     return (
         <div className="task-list-container">
             <div className="section-header">
-                <h3>{showArchive ? 'Archive' : 'Tasks'}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => {
+                    setIsExpanded(prev => {
+                        const next = !prev;
+                        localStorage.setItem('tasksExpanded', next);
+                        return next;
+                    });
+                }}>
+                    <span style={{ fontSize: '0.8rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                    <h3 style={{ margin: 0 }}>{showArchive ? 'Archive' : 'Tasks'}</h3>
+                </div>
                 <div className="section-header-actions">
                     <button
                         className={`archive-toggle-btn ${showArchive ? 'active' : ''}`}
@@ -474,6 +487,9 @@ function TaskList({ userId }) {
                     )}
                 </div>
             </div>
+            
+            {isExpanded && (
+                <>
             {!showArchive && (
                 <form onSubmit={addTask} className="task-form">
                     <input
@@ -694,6 +710,8 @@ function TaskList({ userId }) {
                         : (filterTag ? `No tasks with tag #${filterTag}` : 'No tasks yet. Stay focused!')
                     }
                 </p>
+            )}
+            </>
             )}
         </div>
     );

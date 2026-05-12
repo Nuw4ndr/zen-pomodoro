@@ -37,6 +37,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(() => localStorage.getItem('showPlaylists') !== 'false');
   const [showNotes, setShowNotes] = useState(() => localStorage.getItem('showNotes') === 'true');
+  const [expandNotesTrigger, setExpandNotesTrigger] = useState(0);
   const [user, setUser] = useState(null);
   const audioRef = useRef(null);
 
@@ -196,10 +197,14 @@ function App() {
           <button
             className={`theme-toggle ${showNotes ? 'active' : ''}`}
             onClick={() => {
-              setShowNotes(prev => {
-                localStorage.setItem('showNotes', !prev);
-                return !prev;
-              });
+              if (!showNotes) {
+                setShowNotes(true);
+                localStorage.setItem('showNotes', 'true');
+                setExpandNotesTrigger(Date.now());
+              } else {
+                setShowNotes(false);
+                localStorage.setItem('showNotes', 'false');
+              }
             }}
             title={showNotes ? 'Hide notes' : 'Show notes'}
           >
@@ -268,7 +273,7 @@ function App() {
 
       {showNotes && (
         <div className="notes-section">
-          <StickyNotes userId={user?.uid} />
+          <StickyNotes userId={user?.uid} expandTrigger={expandNotesTrigger} />
         </div>
       )}
 
