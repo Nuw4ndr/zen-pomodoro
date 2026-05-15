@@ -825,7 +825,32 @@ header {
   font-family: var(--font-main);
   outline: none;
   cursor: pointer;
+}
+
+.search-filter-input {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  font-family: var(--font-main);
+  outline: none;
+  width: 150px;
+  transition: all 0.3s ease;
+}
+
+.search-filter-input:focus {
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.06);
+  width: 200px;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 0.5rem;
   margin-left: auto;
+  align-items: center;
 }
 
 .date-filter-input::-webkit-calendar-picker-indicator {

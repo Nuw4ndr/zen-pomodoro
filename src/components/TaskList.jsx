@@ -26,6 +26,7 @@ function TaskList({ userId }) {
     // Tag and Edit State
     const [filterTag, setFilterTag] = useState('');
     const [filterDate, setFilterDate] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [editingTaskId, setEditingTaskId] = useState(null);
     const [editValue, setEditValue] = useState('');
     const [editSummaryValue, setEditSummaryValue] = useState('');
@@ -405,6 +406,15 @@ function TaskList({ userId }) {
             });
         }
 
+        if (searchQuery) {
+            const queryLower = searchQuery.toLowerCase();
+            result = result.filter(t => {
+                const textMatch = (t.text || '').toLowerCase().includes(queryLower);
+                const summaryMatch = (t.summary || '').toLowerCase().includes(queryLower);
+                return textMatch || summaryMatch;
+            });
+        }
+
         if (voteSortOrder === 'desc') {
             result.sort((a, b) => (b.votes || 0) - (a.votes || 0));
         } else if (voteSortOrder === 'asc') {
@@ -506,8 +516,8 @@ function TaskList({ userId }) {
             {(allTags.length > 0 || baseTasks.length > 0) && (
                 <div className="tag-filter-bar">
                     <button 
-                        className={`tag-filter-btn ${filterTag === '' && filterDate === '' ? 'active' : ''}`}
-                        onClick={() => { setFilterTag(''); setFilterDate(''); }}
+                        className={`tag-filter-btn ${filterTag === '' && filterDate === '' && searchQuery === '' ? 'active' : ''}`}
+                        onClick={() => { setFilterTag(''); setFilterDate(''); setSearchQuery(''); }}
                     >
                         All
                     </button>
@@ -520,13 +530,23 @@ function TaskList({ userId }) {
                             #{tag}
                         </button>
                     ))}
-                    <input 
-                        type="date" 
-                        className="date-filter-input"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        title="Filter by date"
-                    />
+                    <div className="filter-controls">
+                        <input 
+                            type="date" 
+                            className="date-filter-input"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            title="Filter by date"
+                        />
+                        <input
+                            type="text"
+                            className="search-filter-input"
+                            placeholder="Search tasks..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            title="Search by person or topic"
+                        />
+                    </div>
                 </div>
             )}
 
