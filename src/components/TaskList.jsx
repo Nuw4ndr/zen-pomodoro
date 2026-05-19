@@ -8,7 +8,6 @@ import {
     deleteDoc,
     doc,
     updateDoc,
-    orderBy,
     where
 } from 'firebase/firestore';
 
@@ -24,7 +23,7 @@ function TaskList({ userId }) {
     });
     
     // Tag and Edit State
-    const [filterTag, setFilterTag] = useState('');
+    const [filterTags, setFilterTags] = useState([]);
     const [filterDate, setFilterDate] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [editingTaskId, setEditingTaskId] = useState(null);
@@ -157,6 +156,7 @@ function TaskList({ userId }) {
     // Listen to tasks in real-time
     useEffect(() => {
         if (!userId) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setTasks([]);
             return;
         }
@@ -395,8 +395,8 @@ function TaskList({ userId }) {
     const allTags = [...new Set(baseTasks.flatMap(t => t.tags || []))].sort();
 
     const filteredTasks = (() => {
-        let result = filterTag
-            ? baseTasks.filter(t => (t.tags || []).includes(filterTag))
+        let result = filterTags.length > 0
+            ? baseTasks.filter(t => filterTags.every(tag => (t.tags || []).includes(tag)))
             : [...baseTasks];
 
         if (filterDate) {
@@ -446,7 +446,7 @@ function TaskList({ userId }) {
         a.href = url;
         
         const dateStr = filterDate || new Date().toISOString().split('T')[0];
-        const tagStr = filterTag ? `-${filterTag}` : '';
+        const tagStr = filterTags.length > 0 ? `-${filterTags.join('-')}` : '';
         a.download = `tasks-export-${dateStr}${tagStr}.md`;
         
         document.body.appendChild(a);
@@ -471,7 +471,7 @@ function TaskList({ userId }) {
                 <div className="section-header-actions">
                     <button
                         className={`archive-toggle-btn ${showArchive ? 'active' : ''}`}
-                        onClick={() => { setShowArchive(prev => !prev); setFilterTag(''); }}
+                        onClick={() => { setShowArchive(prev => !prev); setFilterTags([]); }}
                         title={showArchive ? 'Back to Tasks' : `Show Archive (${archivedTasks.length})`}
                     >
                         {showArchive ? '⬅️ Tasks' : `📁 Archive${archivedTasks.length > 0 ? ` (${archivedTasks.length})` : ''}`}
@@ -516,16 +516,20 @@ function TaskList({ userId }) {
             {(allTags.length > 0 || baseTasks.length > 0) && (
                 <div className="tag-filter-bar">
                     <button 
-                        className={`tag-filter-btn ${filterTag === '' && filterDate === '' && searchQuery === '' ? 'active' : ''}`}
-                        onClick={() => { setFilterTag(''); setFilterDate(''); setSearchQuery(''); }}
+                        className={`tag-filter-btn ${filterTags.length === 0 && filterDate === '' && searchQuery === '' ? 'active' : ''}`}
+                        onClick={() => { setFilterTags([]); setFilterDate(''); setSearchQuery(''); }}
                     >
                         All
                     </button>
                     {allTags.map(tag => (
                         <button
                             key={tag}
-                            className={`tag-filter-btn ${filterTag === tag ? 'active' : ''}`}
-                            onClick={() => setFilterTag(tag)}
+                            className={`tag-filter-btn ${filterTags.includes(tag) ? 'active' : ''}`}
+                            onClick={() => {
+                                setFilterTags(prev => 
+                                    prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                                );
+                            }}
                         >
                             #{tag}
                         </button>
@@ -624,7 +628,9 @@ function TaskList({ userId }) {
                                                     className="tag"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setFilterTag(tag);
+                                                        setFilterTags(prev => 
+                                                            prev.includes(tag) ? prev : [...prev, tag]
+                                                        );
                                                     }}
                                                 >
                                                     #{tag}
@@ -688,7 +694,9 @@ function TaskList({ userId }) {
                                                     className="tag"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setFilterTag(tag);
+                                                        setFilterTags(prev => 
+                                                            prev.includes(tag) ? prev : [...prev, tag]
+                                                        );
                                                     }}
                                                 >
                                                     #{tag}
@@ -726,8 +734,8 @@ function TaskList({ userId }) {
             {filteredTasks.length === 0 && (
                 <p className="empty-state">
                     {showArchive
-                        ? (filterTag ? `No archived tasks with tag #${filterTag}` : 'No archived tasks. Clean slate!')
-                        : (filterTag ? `No tasks with tag #${filterTag}` : 'No tasks yet. Stay focused!')
+                        ? (filterTags.length > 0 ? `No archived tasks with tags ${filterTags.map(t=>`#${t}`).join(', ')}` : 'No archived tasks. Clean slate!')
+                        : (filterTags.length > 0 ? `No tasks with tags ${filterTags.map(t=>`#${t}`).join(', ')}` : 'No tasks yet. Stay focused!')
                     }
                 </p>
             )}
