@@ -142,24 +142,65 @@ header {
   font-style: italic;
 }
 
-.main-content {
+.panels-container {
   display: flex;
+  flex-direction: column;
   gap: 1.5rem;
-  align-items: flex-start;
-}
-
-.main-content>.task-list-container {
-  flex: 2;
-  margin-top: 0;
-}
-
-.main-content>.playlist-manager {
-  flex: 1;
-}
-
-.main-content.tasks-only>.task-list-container {
-  flex: 1;
   width: 100%;
+}
+
+.sortable-panel {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sortable-panel.dragging {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+}
+
+.panel-drag-handle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  cursor: grab;
+  color: var(--text-secondary);
+  opacity: 0.3;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.panel-drag-handle:hover {
+  opacity: 0.8;
+  color: var(--accent-gold);
+}
+
+.panel-drag-handle:active {
+  cursor: grabbing;
+}
+
+.panel-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Reset inner containers since they are now wrapped in sortable-panel */
+.panel-content .task-list-container,
+.panel-content .playlist-manager,
+.panel-content .sticky-notes-container {
+  margin-top: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 1.5rem;
 }
 
 .hero-image-container {
@@ -278,16 +319,8 @@ header {
 }
 
 @media (max-width: 900px) {
-  .main-content {
-    flex-direction: column;
-    align-items: stretch;
+  .panels-container {
     gap: 1rem;
-  }
-
-  .main-content>.side-bar {
-    max-height: none;
-    overflow-y: visible;
-    padding-right: 0;
   }
 }
 

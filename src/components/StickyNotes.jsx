@@ -12,7 +12,7 @@ const NOTE_COLORS = [
     'rgba(255, 118, 117, 0.9)', // Red/Pink
 ];
 
-function StickyNotes({ userId, expandTrigger }) {
+function StickyNotes({ userId }) {
     const [notes, setNotes] = useState([]);
     const [error, setError] = useState(null);
     const [isAdding, setIsAdding] = useState(false);
@@ -25,19 +25,6 @@ function StickyNotes({ userId, expandTrigger }) {
         return saved !== 'false'; // Default to true
     });
     const panelRef = useRef(null);
-
-    useEffect(() => {
-        if (expandTrigger) {
-            setIsExpanded(true);
-            localStorage.setItem('notesExpanded', 'true');
-            if (panelRef.current) {
-                // Ensure it's scrolled into view smoothly
-                setTimeout(() => {
-                    panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
-            }
-        }
-    }, [expandTrigger]);
 
     useEffect(() => {
         if (!userId) {

@@ -6,6 +6,21 @@ import StickyNotes from './components/StickyNotes';
 import { db, auth, googleProvider } from './firebase';
 import { collection, onSnapshot, query, addDoc, getDocs, where } from 'firebase/firestore';
 import { signInWithPopup, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import SortablePanel from './components/SortablePanel';
 import './App.css';
 
 const MODES = {
@@ -37,9 +52,42 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(() => localStorage.getItem('showPlaylists') !== 'false');
   const [showNotes, setShowNotes] = useState(() => localStorage.getItem('showNotes') === 'true');
-  const [expandNotesTrigger, setExpandNotesTrigger] = useState(0);
+  const [showTasks, setShowTasks] = useState(() => localStorage.getItem('showTasks') !== 'false');
+  const [panelOrder, setPanelOrder] = useState(() => {
+    const saved = localStorage.getItem('panelOrder');
+    return saved ? JSON.parse(saved) : ['tasks', 'playlists', 'notes'];
+  });
   const [user, setUser] = useState(null);
   const audioRef = useRef(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  useEffect(() => {
+    localStorage.setItem('panelOrder', JSON.stringify(panelOrder));
+  }, [panelOrder]);
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      setPanelOrder((items) => {
+        const oldIndex = items.indexOf(active.id);
+        const newIndex = items.indexOf(over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const visiblePanels = panelOrder.filter(id => {
+    if (id === 'tasks') return showTasks;
+    if (id === 'playlists') return showPlaylists;
+    if (id === 'notes') return showNotes;
+    return true;
+  });
 
   // Handle theme changes
   useEffect(() => {
@@ -183,6 +231,18 @@ function App() {
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
           <button
+            className={`theme-toggle ${showTasks ? 'active' : ''}`}
+            onClick={() => {
+              setShowTasks(prev => {
+                localStorage.setItem('showTasks', !prev);
+                return !prev;
+              });
+            }}
+            title={showTasks ? 'Hide tasks' : 'Show tasks'}
+          >
+            📋
+          </button>
+          <button
             className={`theme-toggle ${showPlaylists ? 'active' : ''}`}
             onClick={() => {
               setShowPlaylists(prev => {
@@ -197,14 +257,10 @@ function App() {
           <button
             className={`theme-toggle ${showNotes ? 'active' : ''}`}
             onClick={() => {
-              if (!showNotes) {
-                setShowNotes(true);
-                localStorage.setItem('showNotes', 'true');
-                setExpandNotesTrigger(Date.now());
-              } else {
-                setShowNotes(false);
-                localStorage.setItem('showNotes', 'false');
-              }
+              setShowNotes(prev => {
+                localStorage.setItem('showNotes', !prev);
+                return !prev;
+              });
             }}
             title={showNotes ? 'Hide notes' : 'Show notes'}
           >
@@ -266,16 +322,43 @@ function App() {
           {quote && <p className="quote fade-in">"{quote}"</p>}
         </main>
 
-      <div className={`main-content ${!showPlaylists ? 'tasks-only' : ''}`}>
-        <TaskList userId={user?.uid} />
-        {showPlaylists && <PlaylistManager userId={user?.uid} />}
-      </div>
-
-      {showNotes && (
-        <div className="notes-section">
-          <StickyNotes userId={user?.uid} expandTrigger={expandNotesTrigger} />
-        </div>
-      )}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={visiblePanels}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="panels-container">
+            {visiblePanels.map((panelId) => {
+              if (panelId === 'tasks') {
+                return (
+                  <SortablePanel key={panelId} id={panelId} isVisible={showTasks}>
+                    <TaskList userId={user?.uid} />
+                  </SortablePanel>
+                );
+              }
+              if (panelId === 'playlists') {
+                return (
+                  <SortablePanel key={panelId} id={panelId} isVisible={showPlaylists}>
+                    <PlaylistManager userId={user?.uid} />
+                  </SortablePanel>
+                );
+              }
+              if (panelId === 'notes') {
+                return (
+                  <SortablePanel key={panelId} id={panelId} isVisible={showNotes}>
+                    <StickyNotes userId={user?.uid} />
+                  </SortablePanel>
+                );
+              }
+              return null;
+            })}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {showSettings && (
         <QuoteManager
