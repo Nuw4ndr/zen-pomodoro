@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, query, addDoc, deleteDoc, doc, updateDoc, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, deleteDoc, doc, updateDoc, where, writeBatch } from 'firebase/firestore';
 
 // Colors for the sticky notes
 const NOTE_COLORS = [
@@ -19,15 +19,27 @@ function StickyNotes({ userId }) {
     const [newNoteText, setNewNoteText] = useState('');
     const [editingNoteId, setEditingNoteId] = useState(null);
     const [editNoteText, setEditNoteText] = useState('');
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
     
     const [isExpanded, setIsExpanded] = useState(() => {
         const saved = localStorage.getItem('notesExpanded');
         return saved !== 'false'; // Default to true
     });
     const panelRef = useRef(null);
+    const confirmTimeoutRef = useRef(null);
+
+    // Clean up timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (confirmTimeoutRef.current) {
+                clearTimeout(confirmTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!userId) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setNotes([]);
             return;
         }
@@ -127,6 +139,40 @@ function StickyNotes({ userId }) {
         }
     };
 
+    const clearAllNotes = async () => {
+        if (notes.length === 0) return;
+        try {
+            const batch = writeBatch(db);
+            notes.forEach(note => {
+                const noteRef = doc(db, 'notes', note.id);
+                batch.delete(noteRef);
+            });
+            await batch.commit();
+            setError(null);
+        } catch (error) {
+            console.error("Error clearing notes: ", error);
+            setError(error.message);
+        }
+    };
+
+    const handleClearClick = () => {
+        if (!showClearConfirm) {
+            setShowClearConfirm(true);
+            if (confirmTimeoutRef.current) {
+                clearTimeout(confirmTimeoutRef.current);
+            }
+            confirmTimeoutRef.current = setTimeout(() => {
+                setShowClearConfirm(false);
+            }, 4000);
+        } else {
+            if (confirmTimeoutRef.current) {
+                clearTimeout(confirmTimeoutRef.current);
+            }
+            clearAllNotes();
+            setShowClearConfirm(false);
+        }
+    };
+
     const startEditing = (note) => {
         setEditingNoteId(note.id);
         setEditNoteText(note.text);
@@ -188,7 +234,18 @@ function StickyNotes({ userId }) {
                     <span style={{ fontSize: '0.8rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
                     <h3 style={{ margin: 0 }}>Sticky Notes</h3>
                 </div>
-                <button className="add-note-btn" onClick={() => setIsExpanded(true) || setIsAdding(true)} title="Add a new note">+</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {isExpanded && notes.length > 0 && (
+                        <button 
+                            className={`clear-board-btn ${showClearConfirm ? 'confirming' : ''}`}
+                            onClick={handleClearClick}
+                            title={showClearConfirm ? 'Click again to confirm deletion of all notes' : 'Clear all sticky notes'}
+                        >
+                            {showClearConfirm ? '⚠️ Confirm Clear?' : '🗑️ Clear Board'}
+                        </button>
+                    )}
+                    <button className="add-note-btn" onClick={() => setIsExpanded(true) || setIsAdding(true)} title="Add a new note">+</button>
+                </div>
             </div>
             
             {isExpanded && (

@@ -1701,3 +1701,46 @@ header {
 .note-btn.cancel {
   background: #e63946;
 }
+
+/* Clear Board Button Styles */
+.clear-board-btn {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-main);
+  outline: none;
+}
+
+.clear-board-btn:hover {
+  background: rgba(230, 57, 70, 0.08);
+  color: #e63946;
+  border-color: rgba(230, 57, 70, 0.3);
+  transform: translateY(-1px);
+}
+
+.clear-board-btn.confirming {
+  background: rgba(230, 57, 70, 0.15);
+  color: #e63946;
+  border-color: rgba(230, 57, 70, 0.6);
+  animation: shake 0.3s ease-in-out;
+}
+
+.clear-board-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
