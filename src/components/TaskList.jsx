@@ -35,11 +35,25 @@ function TaskList({ userId }) {
     const [copiedTaskId, setCopiedTaskId] = useState(null);
     const summaryRef = useRef(null);
 
+    // Note Addition State
+    const [addingNoteTaskId, setAddingNoteTaskId] = useState(null);
+    const [noteTopic, setNoteTopic] = useState('');
+    const [noteContent, setNoteContent] = useState('');
+    const noteContentRef = useRef(null);
+
     // Auto-expand summary textarea
     const adjustTextareaHeight = () => {
         if (summaryRef.current) {
             summaryRef.current.style.height = 'auto';
             summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
+        }
+    };
+
+    // Auto-expand note textarea
+    const adjustNoteTextareaHeight = () => {
+        if (noteContentRef.current) {
+            noteContentRef.current.style.height = 'auto';
+            noteContentRef.current.style.height = noteContentRef.current.scrollHeight + 'px';
         }
     };
 
@@ -50,6 +64,13 @@ function TaskList({ userId }) {
             return () => clearTimeout(timer);
         }
     }, [editSummaryValue, editingTaskId]);
+
+    useEffect(() => {
+        if (addingNoteTaskId) {
+            const timer = setTimeout(adjustNoteTextareaHeight, 0);
+            return () => clearTimeout(timer);
+        }
+    }, [noteContent, addingNoteTaskId]);
 
     const toggleSummary = (id) => {
         setExpandedSummaryIds(prev => {
@@ -347,6 +368,127 @@ function TaskList({ userId }) {
         setEditingTaskId(task.id);
         setEditValue(task.text);
         setEditSummaryValue(task.summary || '');
+        setAddingNoteTaskId(null);
+    };
+
+    const startAddingNote = (task) => {
+        setAddingNoteTaskId(task.id);
+        setNoteTopic('');
+        setNoteContent('');
+        setEditingTaskId(null);
+    };
+
+    const handleAddNote = async (id, topic, content) => {
+        if (!topic.trim() || !content.trim()) return;
+        try {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            const hoursStr = String(hours).padStart(2, '0');
+            const timeStr = `${hoursStr}:${minutes} ${ampm}`;
+
+            const noteHeader = `## ${dateStr} | ${timeStr} | ${topic.trim()}`;
+            const formattedNote = `${noteHeader}\n${content.trim()}`;
+
+            let updatedSummary = formattedNote;
+            if (task.summary && task.summary.trim() !== '') {
+                updatedSummary = `${formattedNote}\n\n---\n\n${task.summary.trim()}`;
+            }
+
+            const taskRef = doc(db, 'tasks', id);
+            await updateDoc(taskRef, {
+                summary: updatedSummary,
+                summaryUpdatedAt: new Date()
+            });
+
+            setAddingNoteTaskId(null);
+            setNoteTopic('');
+            setNoteContent('');
+            setError(null);
+
+            setExpandedSummaryIds(prev => {
+                const next = new Set(prev);
+                next.add(id);
+                return next;
+            });
+        } catch (err) {
+            console.error("Error adding note: ", err);
+            setError(`Failed to add note: ${err.message}`);
+        }
+    };
+
+    const renderMarkdown = (text) => {
+        if (!text) return null;
+        
+        const lines = text.split('\n');
+        const elements = [];
+        let currentList = [];
+        
+        const parseInline = (str) => {
+            const parts = str.split('**');
+            return parts.map((part, index) => {
+                const key = `inline-${index}`;
+                if (index % 2 === 1) {
+                    return <strong key={key}>{part}</strong>;
+                }
+                const subparts = part.split('*');
+                return subparts.map((subpart, subindex) => {
+                    if (subindex % 2 === 1) {
+                        return <em key={`em-${subindex}`}>{subpart}</em>;
+                    }
+                    return subpart;
+                });
+            });
+        };
+
+        lines.forEach((line, index) => {
+            const trimmed = line.trim();
+            
+            if (trimmed === '---') {
+                if (currentList.length > 0) {
+                    elements.push(<ul key={`list-${index}`} className="markdown-list">{currentList}</ul>);
+                    currentList = [];
+                }
+                elements.push(<hr key={`hr-${index}`} className="markdown-hr" />);
+            } else if (trimmed.startsWith('## ')) {
+                if (currentList.length > 0) {
+                    elements.push(<ul key={`list-${index}`} className="markdown-list">{currentList}</ul>);
+                    currentList = [];
+                }
+                const headerText = trimmed.substring(3);
+                elements.push(<h4 key={`h4-${index}`} className="markdown-h4">{parseInline(headerText)}</h4>);
+            } else if (trimmed.startsWith('* ')) {
+                const listContent = trimmed.substring(2);
+                currentList.push(<li key={`li-${index}`}>{parseInline(listContent)}</li>);
+            } else if (trimmed === '') {
+                if (currentList.length > 0) {
+                    elements.push(<ul key={`list-${index}`} className="markdown-list">{currentList}</ul>);
+                    currentList = [];
+                }
+            } else {
+                if (currentList.length > 0) {
+                    elements.push(<ul key={`list-${index}`} className="markdown-list">{currentList}</ul>);
+                    currentList = [];
+                }
+                elements.push(<p key={`p-${index}`} className="markdown-p">{parseInline(line)}</p>);
+            }
+        });
+        
+        if (currentList.length > 0) {
+            elements.push(<ul key="list-final" className="markdown-list">{currentList}</ul>);
+        }
+        
+        return <div className="markdown-container">{elements}</div>;
     };
 
     const updateTask = async (id, newText, newSummary) => {
@@ -617,7 +759,7 @@ function TaskList({ userId }) {
                                     </div>
                                     {expandedSummaryIds.has(task.id) && task.summary && (
                                         <div className="task-summary-block">
-                                            <p className="task-summary">{task.summary}</p>
+                                            {renderMarkdown(task.summary)}
                                         </div>
                                     )}
                                     {task.tags && task.tags.length > 0 && (
@@ -683,7 +825,7 @@ function TaskList({ userId }) {
                                     </div>
                                     {expandedSummaryIds.has(task.id) && task.summary && (
                                         <div className="task-summary-block">
-                                            <p className="task-summary">{task.summary}</p>
+                                            {renderMarkdown(task.summary)}
                                         </div>
                                     )}
                                     {task.tags && task.tags.length > 0 && (
@@ -704,6 +846,45 @@ function TaskList({ userId }) {
                                             ))}
                                         </div>
                                     )}
+                                    {addingNoteTaskId === task.id && (
+                                        <form 
+                                            className="add-note-inline-form"
+                                            onClick={(e) => e.stopPropagation()}
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                handleAddNote(task.id, noteTopic, noteContent);
+                                            }}
+                                        >
+                                            <div className="add-note-fields">
+                                                <input
+                                                    type="text"
+                                                    className="add-note-topic"
+                                                    value={noteTopic}
+                                                    onChange={(e) => setNoteTopic(e.target.value)}
+                                                    placeholder="Topic (e.g. Q3 Budget Review)"
+                                                    autoFocus
+                                                    required
+                                                    onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
+                                                />
+                                                <textarea
+                                                    ref={noteContentRef}
+                                                    className="add-note-content"
+                                                    value={noteContent}
+                                                    onChange={(e) => {
+                                                        setNoteContent(e.target.value);
+                                                        adjustNoteTextareaHeight();
+                                                    }}
+                                                    placeholder="Note details (supports markdown and multiple lines)..."
+                                                    required
+                                                    onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
+                                                />
+                                            </div>
+                                            <div className="add-note-buttons">
+                                                <button type="submit" className="save-btn">Add Note</button>
+                                                <button type="button" className="cancel-btn" onClick={() => setAddingNoteTaskId(null)}>Cancel</button>
+                                            </div>
+                                        </form>
+                                    )}
                                 </div>
                                 <div className="task-actions">
                                     {task.summary && (
@@ -721,6 +902,7 @@ function TaskList({ userId }) {
                                         >
                                             {copiedTaskId === task.id ? '✅' : '📋'}
                                         </button>
+                                        <button className="add-note-btn" onClick={(e) => { e.stopPropagation(); startAddingNote(task); }} title="Add note to task">✍️</button>
                                         <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
                                         <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
                                         <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>

@@ -1147,6 +1147,154 @@ header {
   filter: brightness(1.3);
 }
 
+/* Inline Add Note Form */
+.add-note-inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.8rem;
+  background: rgba(212, 163, 86, 0.03);
+  border: 1px solid rgba(212, 163, 86, 0.15);
+  border-radius: 12px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.add-note-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.add-note-topic {
+  width: 100%;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.add-note-topic:focus {
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.add-note-content {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: none;
+  line-height: 1.5;
+  min-height: 60px;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: block;
+  transition: var(--transition);
+}
+
+.add-note-content:focus {
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.add-note-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.add-note-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  padding: 0 0.3rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.add-note-btn:hover {
+  color: var(--accent-gold);
+  transform: scale(1.15);
+}
+
+/* Custom Markdown Rendering in Task Summary */
+.markdown-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.markdown-h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+  margin-top: 0.4rem;
+  margin-bottom: 0.2rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.2rem;
+}
+
+.markdown-list {
+  list-style-type: none;
+  padding-left: 0.6rem;
+  margin: 0;
+}
+
+.markdown-list li {
+  position: relative;
+  padding-left: 0.8rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.markdown-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent-gold);
+  font-weight: bold;
+}
+
+.markdown-hr {
+  border: none;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  margin: 0.6rem 0;
+  width: 100%;
+}
+
+.markdown-p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.markdown-container strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.markdown-container em {
+  font-style: italic;
+  opacity: 0.95;
+}
+
 
 
 
