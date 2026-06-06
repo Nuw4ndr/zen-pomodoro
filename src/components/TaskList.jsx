@@ -569,6 +569,19 @@ function TaskList({ userId }) {
 
         if (filterDate) {
             result = result.filter(t => {
+                if (t.summary) {
+                    const dateHeaderRegex = /^##\s*(\d{4}-\d{2}-\d{2})/m;
+                    if (dateHeaderRegex.test(t.summary)) {
+                        const blocks = t.summary.split(/(?:^|\n)\s*---\s*(?:\n|$)/);
+                        for (const block of blocks) {
+                            const match = block.trim().match(/^##\s*(\d{4}-\d{2}-\d{2})/);
+                            if (match && match[1] === filterDate) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                }
                 const ts = t.summaryUpdatedAt || t.createdAt;
                 return extractDateString(ts) === filterDate;
             });
@@ -603,7 +616,23 @@ function TaskList({ userId }) {
                 markdownContent += `Last Updated: ${dateStr}\n`;
             }
             if (task.summary) {
-                markdownContent += `Task Summary: ${task.summary}\n`;
+                let exportedSummary = task.summary;
+                if (filterDate) {
+                    const dateHeaderRegex = /^##\s*(\d{4}-\d{2}-\d{2})/m;
+                    if (dateHeaderRegex.test(task.summary)) {
+                        const blocks = task.summary.split(/(?:^|\n)\s*---\s*(?:\n|$)/);
+                        const matchingBlocks = blocks.filter(block => {
+                            const trimmed = block.trim();
+                            if (!trimmed) return false;
+                            const match = trimmed.match(/^##\s*(\d{4}-\d{2}-\d{2})/);
+                            return match && match[1] === filterDate;
+                        });
+                        exportedSummary = matchingBlocks.map(b => b.trim()).filter(Boolean).join('\n\n---\n\n');
+                    }
+                }
+                if (exportedSummary) {
+                    markdownContent += `Task Summary: ${exportedSummary}\n`;
+                }
             }
             markdownContent += `\n`;
         });
