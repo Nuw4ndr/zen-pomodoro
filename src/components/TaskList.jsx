@@ -39,6 +39,8 @@ function TaskList({ userId }) {
     const [addingNoteTaskId, setAddingNoteTaskId] = useState(null);
     const [noteTopic, setNoteTopic] = useState('');
     const [noteContent, setNoteContent] = useState('');
+    const [noteDate, setNoteDate] = useState('');
+    const [noteTime, setNoteTime] = useState('');
     const noteContentRef = useRef(null);
 
     // Auto-expand summary textarea
@@ -375,29 +377,51 @@ function TaskList({ userId }) {
         setAddingNoteTaskId(task.id);
         setNoteTopic('');
         setNoteContent('');
+        
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        setNoteDate(`${yyyy}-${mm}-${dd}`);
+        
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        setNoteTime(`${hours}:${minutes}`);
+        
         setEditingTaskId(null);
     };
 
-    const handleAddNote = async (id, topic, content) => {
+    const handleAddNote = async (id, topic, content, customDate, customTime) => {
         if (!topic.trim() || !content.trim()) return;
         try {
             const task = tasks.find(t => t.id === id);
             if (!task) return;
 
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}-${mm}-${dd}`;
+            // Use custom date or fall back to today's date
+            const dateStr = customDate || (() => {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            })();
 
-            let hours = now.getHours();
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12 || 12;
-            const hoursStr = String(hours).padStart(2, '0');
-            const timeStr = `${hoursStr}:${minutes} ${ampm}`;
+            // Format custom time if provided
+            let timeStr = '';
+            if (customTime) {
+                const [hStr, mStr] = customTime.split(':');
+                let hours = parseInt(hStr, 10);
+                const minutes = mStr;
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12 || 12;
+                const hoursStr = String(hours).padStart(2, '0');
+                timeStr = `${hoursStr}:${minutes} ${ampm}`;
+            }
 
-            const noteHeader = `## ${dateStr} | ${timeStr} | ${topic.trim()}`;
+            // Omit time from note header if not specified
+            const noteHeader = timeStr 
+                ? `## ${dateStr} | ${timeStr} | ${topic.trim()}`
+                : `## ${dateStr} | ${topic.trim()}`;
             const formattedNote = `${noteHeader}\n${content.trim()}`;
 
             let updatedSummary = formattedNote;
@@ -414,6 +438,8 @@ function TaskList({ userId }) {
             setAddingNoteTaskId(null);
             setNoteTopic('');
             setNoteContent('');
+            setNoteDate('');
+            setNoteTime('');
             setError(null);
 
             setExpandedSummaryIds(prev => {
@@ -852,7 +878,7 @@ function TaskList({ userId }) {
                                             onClick={(e) => e.stopPropagation()}
                                             onSubmit={(e) => {
                                                 e.preventDefault();
-                                                handleAddNote(task.id, noteTopic, noteContent);
+                                                handleAddNote(task.id, noteTopic, noteContent, noteDate, noteTime);
                                             }}
                                         >
                                             <div className="add-note-fields">
@@ -866,6 +892,55 @@ function TaskList({ userId }) {
                                                     required
                                                     onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
                                                 />
+                                                
+                                                <div className="add-note-meta-row">
+                                                    <div className="meta-field">
+                                                        <label className="meta-label">Date</label>
+                                                        <input
+                                                            type="date"
+                                                            className="add-note-date"
+                                                            value={noteDate}
+                                                            onChange={(e) => {
+                                                                const selectedDate = e.target.value;
+                                                                setNoteDate(selectedDate);
+                                                                
+                                                                const now = new Date();
+                                                                const yyyy = now.getFullYear();
+                                                                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                                                                const dd = String(now.getDate()).padStart(2, '0');
+                                                                const todayStr = `${yyyy}-${mm}-${dd}`;
+                                                                if (selectedDate !== todayStr) {
+                                                                    setNoteTime('');
+                                                                }
+                                                            }}
+                                                            required
+                                                            onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
+                                                        />
+                                                    </div>
+                                                    <div className="meta-field">
+                                                        <label className="meta-label">Time (optional)</label>
+                                                        <div className="time-input-container">
+                                                            <input
+                                                                type="time"
+                                                                className="add-note-time"
+                                                                value={noteTime}
+                                                                onChange={(e) => setNoteTime(e.target.value)}
+                                                                onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
+                                                            />
+                                                            {noteTime && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="clear-time-btn"
+                                                                    onClick={() => setNoteTime('')}
+                                                                    title="Clear time"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 <textarea
                                                     ref={noteContentRef}
                                                     className="add-note-content"

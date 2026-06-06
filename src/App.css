@@ -1186,6 +1186,89 @@ header {
   outline: none;
 }
 
+.add-note-meta-row {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.meta-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.meta-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.add-note-date,
+.add-note-time {
+  width: 100%;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+
+.add-note-date::-webkit-calendar-picker-indicator,
+.add-note-time::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+.add-note-date:focus,
+.add-note-time:focus {
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.time-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.clear-time-btn {
+  position: absolute;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.1rem;
+  line-height: 1;
+  transition: var(--transition);
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.clear-time-btn:hover {
+  color: #e63946;
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.add-note-time {
+  padding-right: 2rem;
+}
+
 .add-note-content {
   width: 100%;
   padding: 0.6rem 0.8rem;
