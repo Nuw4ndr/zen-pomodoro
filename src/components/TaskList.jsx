@@ -560,7 +560,7 @@ function TaskList({ userId }) {
     const archivedTasks = tasks.filter(t => t.archived);
 
     const baseTasks = showArchive ? archivedTasks : activeTasks;
-    const allTags = [...new Set(baseTasks.flatMap(t => t.tags || []))].sort();
+    const allTags = [...new Set([...baseTasks.flatMap(t => t.tags || []), ...filterTags])].sort();
 
     const filteredTasks = (() => {
         let result = filterTags.length > 0
@@ -719,7 +719,7 @@ function TaskList({ userId }) {
                 <div className="section-header-actions">
                     <button
                         className={`archive-toggle-btn ${showArchive ? 'active' : ''}`}
-                        onClick={() => { setShowArchive(prev => !prev); setFilterTags([]); }}
+                        onClick={() => { setShowArchive(prev => !prev); }}
                         title={showArchive ? 'Back to Tasks' : `Show Archive (${archivedTasks.length})`}
                     >
                         {showArchive ? '⬅️ Tasks' : `📁 Archive${archivedTasks.length > 0 ? ` (${archivedTasks.length})` : ''}`}
