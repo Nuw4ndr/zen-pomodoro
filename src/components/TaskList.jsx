@@ -605,12 +605,63 @@ function TaskList({ userId }) {
         return result;
     })();
 
+    const exportableTasks = (() => {
+        let result = filterTags.length > 0
+            ? tasks.filter(t => filterTags.every(tag => (t.tags || []).includes(tag)))
+            : [...tasks];
+
+        if (filterDate) {
+            result = result.filter(t => {
+                if (t.summary) {
+                    const dateHeaderRegex = /^##\s*(\d{4}-\d{2}-\d{2})/m;
+                    if (dateHeaderRegex.test(t.summary)) {
+                        const blocks = t.summary.split(/(?:^|\n)\s*---\s*(?:\n|$)/);
+                        for (const block of blocks) {
+                            const match = block.trim().match(/^##\s*(\d{4}-\d{2}-\d{2})/);
+                            if (match && match[1] === filterDate) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                }
+                const ts = t.summaryUpdatedAt || t.createdAt;
+                return extractDateString(ts) === filterDate;
+            });
+        }
+
+        if (searchQuery) {
+            const queryLower = searchQuery.toLowerCase();
+            result = result.filter(t => {
+                const textMatch = (t.text || '').toLowerCase().includes(queryLower);
+                const summaryMatch = (t.summary || '').toLowerCase().includes(queryLower);
+                return textMatch || summaryMatch;
+            });
+        }
+
+        if (voteSortOrder === 'desc') {
+            result.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        } else if (voteSortOrder === 'asc') {
+            result.sort((a, b) => (a.votes || 0) - (b.votes || 0));
+        }
+
+        return result;
+    })();
+
     const handleExportFilteredTasks = () => {
-        if (filteredTasks.length === 0) return;
+        if (exportableTasks.length === 0) return;
 
         let markdownContent = `# Tasks Export\n\n`;
-        filteredTasks.forEach(task => {
-            markdownContent += `## Task Title: ${task.text}\n`;
+        exportableTasks.forEach(task => {
+            let status = 'Active';
+            if (task.completed) {
+                status = 'Completed';
+            } else if (task.archived) {
+                status = 'Archived';
+            }
+
+            markdownContent += `## Task Title: ${task.text} [Status: ${status}]\n`;
+            markdownContent += `Status: ${status}\n`;
             const dateStr = formatSummaryDate(task.summaryUpdatedAt || task.createdAt);
             if (dateStr) {
                 markdownContent += `Last Updated: ${dateStr}\n`;
@@ -674,24 +725,22 @@ function TaskList({ userId }) {
                         {showArchive ? '⬅️ Tasks' : `📁 Archive${archivedTasks.length > 0 ? ` (${archivedTasks.length})` : ''}`}
                     </button>
                     {!showArchive && (
-                        <>
-                            <button
-                                className={`vote-sort-btn ${voteSortOrder !== 'none' ? 'active' : ''}`}
-                                onClick={cycleVoteSort}
-                                title={voteSortLabel}
-                            >
-                                {voteSortOrder === 'desc' ? '🔥 ↓' : voteSortOrder === 'asc' ? '🧊 ↑' : '⇅'}
-                            </button>
-                            <button
-                                className="export-all-btn"
-                                onClick={handleExportFilteredTasks}
-                                title="Export filtered tasks to Markdown"
-                                disabled={filteredTasks.length === 0}
-                            >
-                                📋 Export All
-                            </button>
-                        </>
+                        <button
+                            className={`vote-sort-btn ${voteSortOrder !== 'none' ? 'active' : ''}`}
+                            onClick={cycleVoteSort}
+                            title={voteSortLabel}
+                        >
+                            {voteSortOrder === 'desc' ? '🔥 ↓' : voteSortOrder === 'asc' ? '🧊 ↑' : '⇅'}
+                        </button>
                     )}
+                    <button
+                        className="export-all-btn"
+                        onClick={handleExportFilteredTasks}
+                        title="Export filtered tasks to Markdown"
+                        disabled={exportableTasks.length === 0}
+                    >
+                        📋 Export All
+                    </button>
                 </div>
             </div>
             
