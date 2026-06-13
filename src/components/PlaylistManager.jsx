@@ -57,7 +57,7 @@ function PlaylistManager({ userId }) {
                 }
             }
         } catch (e) {
-            console.error("Invalid URL:", url);
+            console.error("Invalid URL:", url, e);
         }
         return null;
     };
@@ -65,6 +65,7 @@ function PlaylistManager({ userId }) {
     // Listen to playlists
     useEffect(() => {
         if (!userId) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPlaylists([]);
             return;
         }

@@ -1975,3 +1975,11 @@ header {
   20%, 60% { transform: translateX(-4px); }
   40%, 80% { transform: translateX(4px); }
 }
+
+/* Dragging visual cues */
+.sticky-note.dragging {
+  opacity: 0 !important;
+  pointer-events: none;
+  box-shadow: none !important;
+  border: none !important;
+}

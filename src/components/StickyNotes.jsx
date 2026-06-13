@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, addDoc, deleteDoc, doc, updateDoc, where, writeBatch } from 'firebase/firestore';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Colors for the sticky notes
 const NOTE_COLORS = [
@@ -12,6 +29,86 @@ const NOTE_COLORS = [
     'rgba(255, 118, 117, 0.9)', // Red/Pink
 ];
 
+function SortableNote({ 
+    note, 
+    editingNoteId, 
+    startEditing, 
+    saveEdit, 
+    setEditingNoteId, 
+    editNoteText, 
+    setEditNoteText, 
+    changeColor, 
+    deleteNote, 
+    NOTE_COLORS 
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: note.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        backgroundColor: note.color || NOTE_COLORS[0],
+        opacity: isDragging ? 0 : 1,
+        zIndex: isDragging ? 100 : 'auto',
+        position: 'relative',
+        cursor: isDragging ? 'grabbing' : 'grab',
+    };
+
+    return (
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            className={`sticky-note ${isDragging ? 'dragging' : ''}`}
+            {...attributes}
+            {...listeners}
+        >
+            {editingNoteId === note.id ? (
+                <>
+                    <textarea
+                        autoFocus
+                        value={editNoteText}
+                        onChange={(e) => setEditNoteText(e.target.value)}
+                        rows="6"
+                        className="edit-note-textarea"
+                    />
+                    <div className="note-actions">
+                        <button onClick={() => saveEdit(note.id)} className="note-btn save">Save</button>
+                        <button onClick={() => setEditingNoteId(null)} className="note-btn cancel">Cancel</button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <div className="note-content" onDoubleClick={() => startEditing(note)}>
+                        {note.text}
+                    </div>
+                    <div className="note-footer">
+                        <div className="color-picker-mini">
+                            {NOTE_COLORS.map(c => (
+                                <span 
+                                    key={c} 
+                                    className="color-dot" 
+                                    style={{ backgroundColor: c }}
+                                    onClick={() => changeColor(note.id, c)}
+                                />
+                            ))}
+                        </div>
+                        <div className="note-controls">
+                            <button onClick={() => startEditing(note)} title="Edit">✎</button>
+                            <button onClick={() => deleteNote(note.id)} title="Delete">×</button>
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 function StickyNotes({ userId }) {
     const [notes, setNotes] = useState([]);
     const [error, setError] = useState(null);
@@ -20,6 +117,7 @@ function StickyNotes({ userId }) {
     const [editingNoteId, setEditingNoteId] = useState(null);
     const [editNoteText, setEditNoteText] = useState('');
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [activeId, setActiveId] = useState(null);
     
     const [isExpanded, setIsExpanded] = useState(() => {
         const saved = localStorage.getItem('notesExpanded');
@@ -27,6 +125,17 @@ function StickyNotes({ userId }) {
     });
     const panelRef = useRef(null);
     const confirmTimeoutRef = useRef(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // Clean up timeout on unmount
     useEffect(() => {
@@ -55,11 +164,16 @@ function StickyNotes({ userId }) {
                 notesArray.push({ id: doc.id, ...doc.data() });
             });
             
-            // Sort in memory to avoid needing a composite index in Firestore
+            // Sort in memory: custom order first (ascending), then fallback to createdAt descending
             notesArray.sort((a, b) => {
+                if (a.order !== undefined && b.order !== undefined) {
+                    return a.order - b.order;
+                }
+                if (a.order !== undefined) return -1;
+                if (b.order !== undefined) return 1;
                 const timeA = a.createdAt?.seconds || 0;
                 const timeB = b.createdAt?.seconds || 0;
-                return timeB - timeA; // Descending (newest first)
+                return timeB - timeA;
             });
 
             setNotes(notesArray);
@@ -71,6 +185,13 @@ function StickyNotes({ userId }) {
         return () => unsubscribe();
     }, [userId]);
 
+    const getNextOrder = (atBeginning = true) => {
+        if (notes.length === 0) return 0;
+        const orders = notes.map(n => n.order).filter(o => o !== undefined);
+        if (orders.length === 0) return 0;
+        return atBeginning ? Math.min(...orders) - 1 : Math.max(...orders) + 1;
+    };
+
     const addNote = async (extractList = false) => {
         if (!newNoteText.trim()) {
             setIsAdding(false);
@@ -81,7 +202,6 @@ function StickyNotes({ userId }) {
             if (extractList) {
                 const lines = newNoteText.trim().split('\n');
                 const listItems = [];
-                // Matches -, *, or + bullet points, ignoring leading/trailing spaces
                 const bulletRegex = /^\s*[-*+]\s+(.*)/;
                 
                 for (const line of lines) {
@@ -92,24 +212,26 @@ function StickyNotes({ userId }) {
                 }
                 
                 if (listItems.length > 0) {
-                    const promises = listItems.map(itemText => {
+                    let startOrder = getNextOrder(true);
+                    const promises = listItems.map((itemText, i) => {
                         const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
                         return addDoc(collection(db, 'notes'), {
                             text: itemText,
                             userId: userId,
                             createdAt: new Date(),
-                            color: randomColor
+                            color: randomColor,
+                            order: startOrder + i
                         });
                     });
                     await Promise.all(promises);
                 } else {
-                    // Fallback if no bullet points found
                     const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
                     await addDoc(collection(db, 'notes'), {
                         text: newNoteText.trim(),
                         userId: userId,
                         createdAt: new Date(),
-                        color: randomColor
+                        color: randomColor,
+                        order: getNextOrder(true)
                     });
                 }
             } else {
@@ -118,7 +240,8 @@ function StickyNotes({ userId }) {
                     text: newNoteText.trim(),
                     userId: userId,
                     createdAt: new Date(),
-                    color: randomColor
+                    color: randomColor,
+                    order: getNextOrder(true)
                 });
             }
             
@@ -201,6 +324,40 @@ function StickyNotes({ userId }) {
         }
     };
 
+    const handleDragStart = (event) => {
+        setActiveId(event.active.id);
+    };
+
+    const handleDragEnd = async (event) => {
+        const { active, over } = event;
+        setActiveId(null);
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = notes.findIndex(item => item.id === active.id);
+        const newIndex = notes.findIndex(item => item.id === over.id);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+            const reorderedNotes = arrayMove(notes, oldIndex, newIndex);
+            setNotes(reorderedNotes);
+
+            try {
+                const batch = writeBatch(db);
+                reorderedNotes.forEach((note, index) => {
+                    const noteRef = doc(db, 'notes', note.id);
+                    batch.update(noteRef, { order: index });
+                });
+                await batch.commit();
+            } catch (err) {
+                console.error("Error updating note order in database:", err);
+                setError(err.message);
+            }
+        }
+    };
+
+    const handleDragCancel = () => {
+        setActiveId(null);
+    };
+
     if (!userId) {
         return (
             <div className="sticky-notes-panel" ref={panelRef}>
@@ -252,67 +409,72 @@ function StickyNotes({ userId }) {
                 <>
                     {error && <div className="error-message"><p>⚠️ {error}</p></div>}
                     
-                    <div className="notes-grid">
-                {isAdding && (
-                    <div className="sticky-note new-note" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-                        <textarea
-                            autoFocus
-                            value={newNoteText}
-                            onChange={(e) => setNewNoteText(e.target.value)}
-                            placeholder="Type your note here... (Markdown supported)&#10;Paste a list and click 'Extract List' to create multiple notes."
-                            rows="6"
-                            className="edit-note-textarea"
-                        />
-                        <div className="note-actions">
-                            <button onClick={() => addNote(false)} className="note-btn save">Save</button>
-                            <button onClick={() => addNote(true)} className="note-btn save" style={{ backgroundColor: 'rgba(116, 185, 255, 0.3)', borderColor: 'rgba(116, 185, 255, 0.6)' }} title="Create a note for each bullet point">Extract List</button>
-                            <button onClick={() => { setIsAdding(false); setNewNoteText(''); }} className="note-btn cancel">Cancel</button>
-                        </div>
-                    </div>
-                )}
-                {notes.map(note => (
-                    <div key={note.id} className="sticky-note" style={{ backgroundColor: note.color || NOTE_COLORS[0] }}>
-                        {editingNoteId === note.id ? (
-                            <>
-                                <textarea
-                                    autoFocus
-                                    value={editNoteText}
-                                    onChange={(e) => setEditNoteText(e.target.value)}
-                                    rows="6"
-                                    className="edit-note-textarea"
-                                />
-                                <div className="note-actions">
-                                    <button onClick={() => saveEdit(note.id)} className="note-btn save">Save</button>
-                                    <button onClick={() => setEditingNoteId(null)} className="note-btn cancel">Cancel</button>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="note-content" onDoubleClick={() => startEditing(note)}>
-                                    {note.text}
-                                </div>
-                                <div className="note-footer">
-                                    <div className="color-picker-mini">
-                                        {NOTE_COLORS.map(c => (
-                                            <span 
-                                                key={c} 
-                                                className="color-dot" 
-                                                style={{ backgroundColor: c }}
-                                                onClick={() => changeColor(note.id, c)}
-                                            />
-                                        ))}
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDragCancel={handleDragCancel}
+                    >
+                        <SortableContext
+                            items={notes.map(n => n.id)}
+                            strategy={rectSortingStrategy}
+                        >
+                            <div className="notes-grid">
+                                {isAdding && (
+                                    <div className="sticky-note new-note" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                        <textarea
+                                            autoFocus
+                                            value={newNoteText}
+                                            onChange={(e) => setNewNoteText(e.target.value)}
+                                            placeholder="Type your note here... (Markdown supported)&#10;Paste a list and click 'Extract List' to create multiple notes."
+                                            rows="6"
+                                            className="edit-note-textarea"
+                                        />
+                                        <div className="note-actions">
+                                            <button onClick={() => addNote(false)} className="note-btn save">Save</button>
+                                            <button onClick={() => addNote(true)} className="note-btn save" style={{ backgroundColor: 'rgba(116, 185, 255, 0.3)', borderColor: 'rgba(116, 185, 255, 0.6)' }} title="Create a note for each bullet point">Extract List</button>
+                                            <button onClick={() => { setIsAdding(false); setNewNoteText(''); }} className="note-btn cancel">Cancel</button>
+                                        </div>
                                     </div>
-                                    <div className="note-controls">
-                                        <button onClick={() => startEditing(note)} title="Edit">✎</button>
-                                        <button onClick={() => deleteNote(note.id)} title="Delete">×</button>
+                                )}
+                                {notes.map(note => (
+                                    <SortableNote
+                                        key={note.id}
+                                        note={note}
+                                        editingNoteId={editingNoteId}
+                                        startEditing={startEditing}
+                                        saveEdit={saveEdit}
+                                        setEditingNoteId={setEditingNoteId}
+                                        editNoteText={editNoteText}
+                                        setEditNoteText={setEditNoteText}
+                                        changeColor={changeColor}
+                                        deleteNote={deleteNote}
+                                        NOTE_COLORS={NOTE_COLORS}
+                                    />
+                                ))}
+                            </div>
+                        </SortableContext>
+                        <DragOverlay adjustScale={true}>
+                            {activeId ? (
+                                <div 
+                                    className="sticky-note" 
+                                    style={{ 
+                                        backgroundColor: notes.find(n => n.id === activeId)?.color || NOTE_COLORS[0],
+                                        boxShadow: '0 15px 30px rgba(0, 0, 0, 0.3)',
+                                        cursor: 'grabbing',
+                                        transform: 'rotate(0deg)',
+                                        margin: 0
+                                    }}
+                                >
+                                    <div className="note-content">
+                                        {notes.find(n => n.id === activeId)?.text}
                                     </div>
                                 </div>
-                            </>
-                        )}
-                    </div>
-                ))}
-            </div>
-            </>
+                            ) : null}
+                        </DragOverlay>
+                    </DndContext>
+                </>
             )}
         </div>
     );

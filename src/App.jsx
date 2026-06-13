@@ -110,9 +110,30 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  const seedDefaultQuotes = async (userId) => {
+    try {
+      // Check again if empty before seeding to avoid duplicates
+      const q = query(collection(db, 'quotes'), where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        for (const text of DEFAULT_QUOTES) {
+          await addDoc(collection(db, 'quotes'), {
+            text,
+            createdAt: new Date(),
+            isDefault: true,
+            userId: userId
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error seeding quotes: ", error);
+    }
+  };
+
   // Listen to quotes from Firestore
   useEffect(() => {
     if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuotes(DEFAULT_QUOTES.map((text, index) => ({ id: `default-${index}`, text })));
       return;
     }
@@ -140,26 +161,6 @@ function App() {
     return () => unsubscribe();
   }, [user]);
 
-  const seedDefaultQuotes = async (userId) => {
-    try {
-      // Check again if empty before seeding to avoid duplicates
-      const q = query(collection(db, 'quotes'), where('userId', '==', userId));
-      const querySnapshot = await getDocs(q);
-      if (querySnapshot.empty) {
-        for (const text of DEFAULT_QUOTES) {
-          await addDoc(collection(db, 'quotes'), {
-            text,
-            createdAt: new Date(),
-            isDefault: true,
-            userId: userId
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error seeding quotes: ", error);
-    }
-  };
-
   const login = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -184,6 +185,7 @@ function App() {
       }, 1000);
     } else if (timeLeft === 0) {
       clearInterval(interval);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsActive(false);
       if (audioRef.current) {
         audioRef.current.play();
