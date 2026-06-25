@@ -202,12 +202,15 @@ function StickyNotes({ userId }) {
             if (extractList) {
                 const lines = newNoteText.trim().split('\n');
                 const listItems = [];
-                const bulletRegex = /^\s*[-*+]\s+(.*)/;
+                const bulletRegex = /^\s*(?:[-*+]|[0-9]+\.|\[\s*[xX]?\s*\])\s*(?:\[\s*[xX]?\s*\])?\s*(.*)/;
                 
                 for (const line of lines) {
                     const match = line.match(bulletRegex);
                     if (match) {
-                        listItems.push(match[1].trim());
+                        const text = (match[1] || '').trim();
+                        if (text) {
+                            listItems.push(text);
+                        }
                     }
                 }
                 
