@@ -856,10 +856,25 @@ function TaskList({ userId }) {
                             <>
                                 <div className="task-content-wrapper">
                                     <div className="task-header-row">
-                                        <span className="task-text">{task.text}</span>
-                                        <span className="task-header-date">
-                                            {formatSummaryDate(task.summaryUpdatedAt || task.createdAt)}
-                                        </span>
+                                        <div className="task-header-info">
+                                            <span className="task-text">{task.text}</span>
+                                            <span className="task-header-date">
+                                                {formatSummaryDate(task.summaryUpdatedAt || task.createdAt)}
+                                            </span>
+                                        </div>
+                                        <div className="task-actions archive-actions" onClick={(e) => e.stopPropagation()}>
+                                            {task.summary && (
+                                                <button
+                                                    className={`summary-toggle-btn ${expandedSummaryIds.has(task.id) ? 'active' : ''}`}
+                                                    onClick={() => toggleSummary(task.id)}
+                                                    title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
+                                                >📝</button>
+                                            )}
+                                            <div className="task-actions-group">
+                                                <button className="restore-btn" onClick={() => restoreTask(task.id)} title="Restore task">📤</button>
+                                                <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete permanently">×</button>
+                                            </div>
+                                        </div>
                                     </div>
                                     {expandedSummaryIds.has(task.id) && task.summary && (
                                         <div className="task-summary-block">
@@ -885,19 +900,6 @@ function TaskList({ userId }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="task-actions archive-actions">
-                                    {task.summary && (
-                                        <button
-                                            className={`summary-toggle-btn ${expandedSummaryIds.has(task.id) ? 'active' : ''}`}
-                                            onClick={() => toggleSummary(task.id)}
-                                            title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
-                                        >📝</button>
-                                    )}
-                                    <div className="task-actions-group">
-                                        <button className="restore-btn" onClick={() => restoreTask(task.id)} title="Restore task">📤</button>
-                                        <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete permanently">×</button>
-                                    </div>
-                                </div>
                             </>
                         ) : (
                             <>
@@ -922,10 +924,34 @@ function TaskList({ userId }) {
                                 </div>
                                 <div className="task-content-wrapper" onClick={() => toggleTask(task.id, task.completed)}>
                                     <div className="task-header-row">
-                                        <span className="task-text">{task.text}</span>
-                                        <span className="task-header-date">
-                                            {formatSummaryDate(task.summaryUpdatedAt || task.createdAt)}
-                                        </span>
+                                        <div className="task-header-info">
+                                            <span className="task-text">{task.text}</span>
+                                            <span className="task-header-date">
+                                                {formatSummaryDate(task.summaryUpdatedAt || task.createdAt)}
+                                            </span>
+                                        </div>
+                                        <div className="task-actions" onClick={(e) => e.stopPropagation()}>
+                                            {task.summary && (
+                                                <button
+                                                    className={`summary-toggle-btn ${expandedSummaryIds.has(task.id) ? 'active' : ''}`}
+                                                    onClick={(e) => { e.stopPropagation(); toggleSummary(task.id); }}
+                                                    title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
+                                                >📝</button>
+                                            )}
+                                            <div className="task-actions-group">
+                                                <button 
+                                                    className={`export-btn ${copiedTaskId === task.id ? 'copied' : ''}`} 
+                                                    onClick={(e) => { e.stopPropagation(); handleExportTask(task); }} 
+                                                    title="Export to Gemini (Forge Keeper)"
+                                                >
+                                                    {copiedTaskId === task.id ? '✅' : '📋'}
+                                                </button>
+                                                <button className="add-note-btn" onClick={(e) => { e.stopPropagation(); startAddingNote(task); }} title="Add note to task">✍️</button>
+                                                <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
+                                                <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
+                                                <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>
+                                            </div>
+                                        </div>
                                     </div>
                                     {expandedSummaryIds.has(task.id) && task.summary && (
                                         <div className="task-summary-block">
@@ -1038,28 +1064,6 @@ function TaskList({ userId }) {
                                             </div>
                                         </form>
                                     )}
-                                </div>
-                                <div className="task-actions">
-                                    {task.summary && (
-                                        <button
-                                            className={`summary-toggle-btn ${expandedSummaryIds.has(task.id) ? 'active' : ''}`}
-                                            onClick={(e) => { e.stopPropagation(); toggleSummary(task.id); }}
-                                            title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
-                                        >📝</button>
-                                    )}
-                                    <div className="task-actions-group">
-                                        <button 
-                                            className={`export-btn ${copiedTaskId === task.id ? 'copied' : ''}`} 
-                                            onClick={(e) => { e.stopPropagation(); handleExportTask(task); }} 
-                                            title="Export to Gemini (Forge Keeper)"
-                                        >
-                                            {copiedTaskId === task.id ? '✅' : '📋'}
-                                        </button>
-                                        <button className="add-note-btn" onClick={(e) => { e.stopPropagation(); startAddingNote(task); }} title="Add note to task">✍️</button>
-                                        <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
-                                        <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
-                                        <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>
-                                    </div>
                                 </div>
                             </>
                         )}

@@ -893,11 +893,20 @@ header {
 
 .task-header-row {
   display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.task-header-info {
+  display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
-  width: 100%;
   gap: 0.2rem;
+  flex: 1;
 }
 
 .task-header-date {
@@ -1700,6 +1709,23 @@ header {
     min-width: calc(100% - 100px);
     /* Ensure it takes most of the space on row 1 */
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .task-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .task-header-info {
+    width: 100%;
+    flex: none;
   }
 
   .task-text {
@@ -1721,6 +1747,21 @@ header {
     align-items: center;
     flex-wrap: nowrap;
     gap: 0.4rem;
+  }
+
+  .task-summary-block {
+    width: 100%;
+    margin-top: 0.4rem;
+  }
+
+  .task-tags {
+    width: 100%;
+    margin-top: 0.3rem;
+  }
+
+  .add-note-inline-form {
+    width: 100%;
+    margin-top: 0.4rem;
   }
 
   .task-actions-group {
