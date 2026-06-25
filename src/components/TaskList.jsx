@@ -8,7 +8,8 @@ import {
     deleteDoc,
     doc,
     updateDoc,
-    where
+    where,
+    writeBatch
 } from 'firebase/firestore';
 
 function TaskList({ userId }) {
@@ -138,6 +139,77 @@ function TaskList({ userId }) {
         }
     };
 
+    const applyEngagementVotes = async () => {
+        const activeTasksList = tasks.filter(t => !t.archived);
+        if (activeTasksList.length === 0) {
+            setError("No active tasks to apply engagement votes to.");
+            return;
+        }
+
+        const today = new Date();
+        const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        const updatedTodayTasks = [];
+        const otherTasks = [];
+
+        activeTasksList.forEach(task => {
+            const ts = task.updatedAt || task.summaryUpdatedAt || task.createdAt;
+            if (ts) {
+                const d = ts.toDate ? ts.toDate() : new Date(ts);
+                const taskDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                
+                if (taskDateStr === todayDateStr) {
+                    updatedTodayTasks.push(task);
+                } else {
+                    otherTasks.push(task);
+                }
+            } else {
+                otherTasks.push(task);
+            }
+        });
+
+        const formatTaskListPreview = (list) => {
+            if (list.length === 0) return '  • None';
+            return list.map(t => `  • ${t.text}`).join('\n');
+        };
+
+        const confirmMsg = `This will apply daily engagement votes to all active tasks:\n\n` +
+            `🔥 +1 vote for tasks updated today (${updatedTodayTasks.length} tasks):\n` +
+            formatTaskListPreview(updatedTodayTasks) + `\n\n` +
+            `🧊 -1 vote for all other active tasks (${otherTasks.length} tasks):\n` +
+            formatTaskListPreview(otherTasks) + `\n\n` +
+            `Do you want to proceed?`;
+
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const chunkSize = 500;
+            for (let i = 0; i < activeTasksList.length; i += chunkSize) {
+                const chunk = activeTasksList.slice(i, i + chunkSize);
+                const batch = writeBatch(db);
+                chunk.forEach(task => {
+                    const ts = task.updatedAt || task.summaryUpdatedAt || task.createdAt;
+                    let isToday = false;
+                    if (ts) {
+                        const d = ts.toDate ? ts.toDate() : new Date(ts);
+                        const taskDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        isToday = (taskDateStr === todayDateStr);
+                    }
+                    const newVotes = (task.votes || 0) + (isToday ? 1 : -1);
+                    const taskRef = doc(db, 'tasks', task.id);
+                    batch.update(taskRef, { votes: newVotes });
+                });
+                await batch.commit();
+            }
+            setError(null);
+        } catch (err) {
+            console.error("Error applying daily engagement votes: ", err);
+            setError(`Failed to apply daily engagement votes: ${err.message}`);
+        }
+    };
+
     // Compute the priority background style for a task based on its votes
     const getTaskPriorityStyle = (task) => {
         const votes = task.votes || 0;
@@ -234,6 +306,7 @@ function TaskList({ userId }) {
                     text: inputValue.trim(),
                     completed: false,
                     createdAt: new Date(),
+                    updatedAt: new Date(),
                     userId: userId,
                     order: minOrder - 100, // Subtracting 100 to leave space for future insertions
                     tags: extractTags(inputValue),
@@ -432,7 +505,8 @@ function TaskList({ userId }) {
             const taskRef = doc(db, 'tasks', id);
             await updateDoc(taskRef, {
                 summary: updatedSummary,
-                summaryUpdatedAt: new Date()
+                summaryUpdatedAt: new Date(),
+                updatedAt: new Date()
             });
 
             setAddingNoteTaskId(null);
@@ -526,7 +600,8 @@ function TaskList({ userId }) {
             const updates = {
                 text: newText.trim(),
                 tags: extractTags(newText),
-                summary: newSummary.trim()
+                summary: newSummary.trim(),
+                updatedAt: new Date()
             };
             // Only update the timestamp if the summary actually changed
             if (newSummary.trim() !== prevSummary) {
@@ -725,13 +800,22 @@ function TaskList({ userId }) {
                         {showArchive ? '⬅️ Tasks' : `📁 Archive${archivedTasks.length > 0 ? ` (${archivedTasks.length})` : ''}`}
                     </button>
                     {!showArchive && (
-                        <button
-                            className={`vote-sort-btn ${voteSortOrder !== 'none' ? 'active' : ''}`}
-                            onClick={cycleVoteSort}
-                            title={voteSortLabel}
-                        >
-                            {voteSortOrder === 'desc' ? '🔥 ↓' : voteSortOrder === 'asc' ? '🧊 ↑' : '⇅'}
-                        </button>
+                        <>
+                            <button
+                                className={`vote-sort-btn ${voteSortOrder !== 'none' ? 'active' : ''}`}
+                                onClick={cycleVoteSort}
+                                title={voteSortLabel}
+                            >
+                                {voteSortOrder === 'desc' ? '🔥 ↓' : voteSortOrder === 'asc' ? '🧊 ↑' : '⇅'}
+                            </button>
+                            <button
+                                className="apply-engagement-btn"
+                                onClick={applyEngagementVotes}
+                                title="Apply Daily Engagement: +1 vote for tasks updated today, -1 vote for others"
+                            >
+                                ⚡ Engagement
+                            </button>
+                        </>
                     )}
                     <button
                         className="export-all-btn"

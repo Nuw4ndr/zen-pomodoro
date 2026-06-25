@@ -683,6 +683,30 @@ header {
   cursor: not-allowed;
 }
 
+.apply-engagement-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.02em;
+}
+
+.apply-engagement-btn:hover:not(:disabled) {
+  background: rgba(212, 163, 86, 0.08);
+  color: var(--accent-gold);
+  border-color: rgba(212, 163, 86, 0.3);
+  transform: translateY(-1px);
+}
+
+.apply-engagement-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .task-form {
   display: flex;
   gap: 0.5rem;
