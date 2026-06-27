@@ -175,6 +175,8 @@ header {
   align-items: center;
   justify-content: center;
   z-index: 10;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .panel-drag-handle:hover {
@@ -1901,6 +1903,9 @@ header {
   position: relative;
   transition: transform 0.2s, box-shadow 0.2s;
   /* Add a slight rotation for post-it feel */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .sticky-note:nth-child(even) {
