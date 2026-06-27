@@ -248,26 +248,58 @@ function StickyNotes({ userId }) {
                     }
                 }
                 
+                // Select a color that is not currently in use by any existing note, if possible
+                const existingColors = notes.map(n => n.color);
+                const unusedColors = NOTE_COLORS.filter(color => !existingColors.includes(color));
+                
+                let chosenColor;
+                if (unusedColors.length > 0) {
+                    // Pick a random unused color
+                    chosenColor = unusedColors[Math.floor(Math.random() * unusedColors.length)];
+                } else {
+                    // All colors are used. Let's pick the least used one to balance them.
+                    const colorCounts = {};
+                    NOTE_COLORS.forEach(c => {
+                        colorCounts[c] = 0;
+                    });
+                    existingColors.forEach(c => {
+                        if (colorCounts[c] !== undefined) {
+                            colorCounts[c]++;
+                        }
+                    });
+                    
+                    let minCount = Infinity;
+                    let bestColors = [];
+                    NOTE_COLORS.forEach(c => {
+                        if (colorCounts[c] < minCount) {
+                            minCount = colorCounts[c];
+                            bestColors = [c];
+                        } else if (colorCounts[c] === minCount) {
+                            bestColors.push(c);
+                        }
+                    });
+                    
+                    chosenColor = bestColors[Math.floor(Math.random() * bestColors.length)];
+                }
+                
                 if (listItems.length > 0) {
                     let startOrder = getNextOrder(true);
                     const promises = listItems.map((itemText, i) => {
-                        const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
                         return addDoc(collection(db, 'notes'), {
                             text: itemText,
                             userId: userId,
                             createdAt: new Date(),
-                            color: randomColor,
+                            color: chosenColor,
                             order: startOrder + i
                         });
                     });
                     await Promise.all(promises);
                 } else {
-                    const randomColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
                     await addDoc(collection(db, 'notes'), {
                         text: newNoteText.trim(),
                         userId: userId,
                         createdAt: new Date(),
-                        color: randomColor,
+                        color: chosenColor,
                         order: getNextOrder(true)
                     });
                 }
