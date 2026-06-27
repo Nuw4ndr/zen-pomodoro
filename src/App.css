@@ -1908,6 +1908,11 @@ header {
   user-select: none;
 }
 
+.sticky-note.editing {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 .sticky-note:nth-child(even) {
   transform: rotate(1deg);
 }

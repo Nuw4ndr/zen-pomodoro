@@ -42,6 +42,8 @@ function SortableNote({
     deleteNote, 
     NOTE_COLORS 
 }) {
+    const isEditing = editingNoteId === note.id;
+
     const {
         attributes,
         listeners,
@@ -49,7 +51,10 @@ function SortableNote({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: note.id });
+    } = useSortable({ 
+        id: note.id,
+        disabled: isEditing
+    });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -58,18 +63,21 @@ function SortableNote({
         opacity: isDragging ? 0 : 1,
         zIndex: isDragging ? 100 : 'auto',
         position: 'relative',
-        cursor: isDragging ? 'grabbing' : 'grab',
+        cursor: isEditing ? 'default' : (isDragging ? 'grabbing' : 'grab'),
     };
+
+    const stopPropagation = (e) => e.stopPropagation();
+
+    const dragProps = isEditing ? {} : { ...attributes, ...listeners };
 
     return (
         <div 
             ref={setNodeRef} 
             style={style} 
-            className={`sticky-note ${isDragging ? 'dragging' : ''}`}
-            {...attributes}
-            {...listeners}
+            className={`sticky-note ${isDragging ? 'dragging' : ''} ${isEditing ? 'editing' : ''}`}
+            {...dragProps}
         >
-            {editingNoteId === note.id ? (
+            {isEditing ? (
                 <>
                     <textarea
                         autoFocus
@@ -96,12 +104,31 @@ function SortableNote({
                                     className="color-dot" 
                                     style={{ backgroundColor: c }}
                                     onClick={() => changeColor(note.id, c)}
+                                    onMouseDown={stopPropagation}
+                                    onTouchStart={stopPropagation}
+                                    onPointerDown={stopPropagation}
                                 />
                             ))}
                         </div>
                         <div className="note-controls">
-                            <button onClick={() => startEditing(note)} title="Edit">✎</button>
-                            <button onClick={() => deleteNote(note.id)} title="Delete">×</button>
+                            <button 
+                                onClick={() => startEditing(note)} 
+                                onMouseDown={stopPropagation}
+                                onTouchStart={stopPropagation}
+                                onPointerDown={stopPropagation}
+                                title="Edit"
+                            >
+                                ✎
+                            </button>
+                            <button 
+                                onClick={() => deleteNote(note.id)} 
+                                onMouseDown={stopPropagation}
+                                onTouchStart={stopPropagation}
+                                onPointerDown={stopPropagation}
+                                title="Delete"
+                            >
+                                ×
+                            </button>
                         </div>
                     </div>
                 </>
