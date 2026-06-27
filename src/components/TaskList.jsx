@@ -1014,141 +1014,145 @@ function TaskList({ userId }) {
                                                 {formatSummaryDate(task.summaryUpdatedAt || task.createdAt)}
                                             </span>
                                         </div>
-                                        <div className="task-actions" onClick={(e) => e.stopPropagation()}>
-                                            {task.summary && (
-                                                <button
-                                                    className={`summary-toggle-btn ${expandedSummaryIds.has(task.id) ? 'active' : ''}`}
-                                                    onClick={(e) => { e.stopPropagation(); toggleSummary(task.id); }}
-                                                    title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
-                                                >📝</button>
-                                            )}
-                                            <div className="task-actions-group">
-                                                <button 
-                                                    className={`export-btn ${copiedTaskId === task.id ? 'copied' : ''}`} 
-                                                    onClick={(e) => { e.stopPropagation(); handleExportTask(task); }} 
-                                                    title="Export to Gemini (Forge Keeper)"
-                                                >
-                                                    {copiedTaskId === task.id ? '✅' : '📋'}
-                                                </button>
-                                                <button className="add-note-btn" onClick={(e) => { e.stopPropagation(); startAddingNote(task); }} title="Add note to task">✍️</button>
-                                                <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
-                                                <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
-                                                <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>
-                                            </div>
-                                        </div>
                                     </div>
-                                    {expandedSummaryIds.has(task.id) && task.summary && (
-                                        <div className="task-summary-block">
-                                            {renderMarkdown(task.summary)}
-                                        </div>
+                                </div>
+                                <div className="task-actions" onClick={(e) => e.stopPropagation()}>
+                                    {task.summary && (
+                                        <button
+                                            className={`summary-toggle-btn ${expandedSummaryIds.has(task.id) ? 'active' : ''}`}
+                                            onClick={(e) => { e.stopPropagation(); toggleSummary(task.id); }}
+                                            title={expandedSummaryIds.has(task.id) ? 'Hide summary' : 'Show summary'}
+                                        >📝</button>
                                     )}
-                                    {task.tags && task.tags.length > 0 && (
-                                        <div className="task-tags">
-                                            {task.tags.map(tag => (
-                                                <span 
-                                                    key={tag} 
-                                                    className="tag"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setFilterTags(prev => 
-                                                            prev.includes(tag) ? prev : [...prev, tag]
-                                                        );
-                                                    }}
-                                                >
-                                                    #{tag}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {addingNoteTaskId === task.id && (
-                                        <form 
-                                            className="add-note-inline-form"
-                                            onClick={(e) => e.stopPropagation()}
-                                            onSubmit={(e) => {
-                                                e.preventDefault();
-                                                handleAddNote(task.id, noteTopic, noteContent, noteDate, noteTime);
-                                            }}
+                                    <div className="task-actions-group">
+                                        <button 
+                                            className={`export-btn ${copiedTaskId === task.id ? 'copied' : ''}`} 
+                                            onClick={(e) => { e.stopPropagation(); handleExportTask(task); }} 
+                                            title="Export to Gemini (Forge Keeper)"
                                         >
-                                            <div className="add-note-fields">
-                                                <input
-                                                    type="text"
-                                                    className="add-note-topic"
-                                                    value={noteTopic}
-                                                    onChange={(e) => setNoteTopic(e.target.value)}
-                                                    placeholder="Topic (e.g. Q3 Budget Review)"
-                                                    autoFocus
-                                                    required
-                                                    onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
-                                                />
-                                                
-                                                <div className="add-note-meta-row">
-                                                    <div className="meta-field">
-                                                        <label className="meta-label">Date</label>
-                                                        <input
-                                                            type="date"
-                                                            className="add-note-date"
-                                                            value={noteDate}
-                                                            onChange={(e) => {
-                                                                const selectedDate = e.target.value;
-                                                                setNoteDate(selectedDate);
-                                                                
-                                                                const now = new Date();
-                                                                const yyyy = now.getFullYear();
-                                                                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                                                                const dd = String(now.getDate()).padStart(2, '0');
-                                                                const todayStr = `${yyyy}-${mm}-${dd}`;
-                                                                if (selectedDate !== todayStr) {
-                                                                    setNoteTime('');
-                                                                }
-                                                            }}
-                                                            required
-                                                            onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
-                                                        />
-                                                    </div>
-                                                    <div className="meta-field">
-                                                        <label className="meta-label">Time (optional)</label>
-                                                        <div className="time-input-container">
+                                            {copiedTaskId === task.id ? '✅' : '📋'}
+                                        </button>
+                                        <button className="add-note-btn" onClick={(e) => { e.stopPropagation(); startAddingNote(task); }} title="Add note to task">✍️</button>
+                                        <button className="archive-btn" onClick={() => archiveTask(task.id)} title="Archive task">📥</button>
+                                        <button className="edit-btn" onClick={() => startEditing(task)} title="Edit task">✎</button>
+                                        <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Delete task">×</button>
+                                    </div>
+                                </div>
+                                {((expandedSummaryIds.has(task.id) && task.summary) || (task.tags && task.tags.length > 0) || (addingNoteTaskId === task.id)) && (
+                                    <div className="task-details" onClick={(e) => e.stopPropagation()}>
+                                        {expandedSummaryIds.has(task.id) && task.summary && (
+                                            <div className="task-summary-block">
+                                                {renderMarkdown(task.summary)}
+                                            </div>
+                                        )}
+                                        {task.tags && task.tags.length > 0 && (
+                                            <div className="task-tags">
+                                                {task.tags.map(tag => (
+                                                    <span 
+                                                        key={tag} 
+                                                        className="tag"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setFilterTags(prev => 
+                                                                prev.includes(tag) ? prev : [...prev, tag]
+                                                            );
+                                                        }}
+                                                    >
+                                                        #{tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {addingNoteTaskId === task.id && (
+                                            <form 
+                                                className="add-note-inline-form"
+                                                onClick={(e) => e.stopPropagation()}
+                                                onSubmit={(e) => {
+                                                    e.preventDefault();
+                                                    handleAddNote(task.id, noteTopic, noteContent, noteDate, noteTime);
+                                                }}
+                                            >
+                                                <div className="add-note-fields">
+                                                    <input
+                                                        type="text"
+                                                        className="add-note-topic"
+                                                        value={noteTopic}
+                                                        onChange={(e) => setNoteTopic(e.target.value)}
+                                                        placeholder="Topic (e.g. Q3 Budget Review)"
+                                                        autoFocus
+                                                        required
+                                                        onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
+                                                    />
+                                                    
+                                                    <div className="add-note-meta-row">
+                                                        <div className="meta-field">
+                                                            <label className="meta-label">Date</label>
                                                             <input
-                                                                type="time"
-                                                                className="add-note-time"
-                                                                value={noteTime}
-                                                                onChange={(e) => setNoteTime(e.target.value)}
+                                                                type="date"
+                                                                className="add-note-date"
+                                                                value={noteDate}
+                                                                onChange={(e) => {
+                                                                    const selectedDate = e.target.value;
+                                                                    setNoteDate(selectedDate);
+                                                                    
+                                                                    const now = new Date();
+                                                                    const yyyy = now.getFullYear();
+                                                                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                                                                    const dd = String(now.getDate()).padStart(2, '0');
+                                                                    const todayStr = `${yyyy}-${mm}-${dd}`;
+                                                                    if (selectedDate !== todayStr) {
+                                                                        setNoteTime('');
+                                                                    }
+                                                                }}
+                                                                required
                                                                 onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
                                                             />
-                                                            {noteTime && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="clear-time-btn"
-                                                                    onClick={() => setNoteTime('')}
-                                                                    title="Clear time"
-                                                                >
-                                                                    ×
-                                                                </button>
-                                                            )}
+                                                        </div>
+                                                        <div className="meta-field">
+                                                            <label className="meta-label">Time (optional)</label>
+                                                            <div className="time-input-container">
+                                                                <input
+                                                                    type="time"
+                                                                    className="add-note-time"
+                                                                    value={noteTime}
+                                                                    onChange={(e) => setNoteTime(e.target.value)}
+                                                                    onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
+                                                                />
+                                                                {noteTime && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="clear-time-btn"
+                                                                        onClick={() => setNoteTime('')}
+                                                                        title="Clear time"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                <textarea
-                                                    ref={noteContentRef}
-                                                    className="add-note-content"
-                                                    value={noteContent}
-                                                    onChange={(e) => {
-                                                        setNoteContent(e.target.value);
-                                                        adjustNoteTextareaHeight();
-                                                    }}
-                                                    placeholder="Note details (supports markdown and multiple lines)..."
-                                                    required
-                                                    onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
-                                                />
-                                            </div>
-                                            <div className="add-note-buttons">
-                                                <button type="submit" className="save-btn">Add Note</button>
-                                                <button type="button" className="cancel-btn" onClick={() => setAddingNoteTaskId(null)}>Cancel</button>
-                                            </div>
-                                        </form>
-                                    )}
-                                </div>
+                                                    <textarea
+                                                        ref={noteContentRef}
+                                                        className="add-note-content"
+                                                        value={noteContent}
+                                                        onChange={(e) => {
+                                                            setNoteContent(e.target.value);
+                                                            adjustNoteTextareaHeight();
+                                                        }}
+                                                        placeholder="Note details (supports markdown and multiple lines)..."
+                                                        required
+                                                        onKeyDown={(e) => e.key === 'Escape' && setAddingNoteTaskId(null)}
+                                                    />
+                                                </div>
+                                                <div className="add-note-buttons">
+                                                    <button type="submit" className="save-btn">Add Note</button>
+                                                    <button type="button" className="cancel-btn" onClick={() => setAddingNoteTaskId(null)}>Cancel</button>
+                                                </div>
+                                            </form>
+                                        )}
+                                    </div>
+                                )}
                             </>
                         )}
                     </li>

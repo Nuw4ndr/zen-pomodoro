@@ -748,6 +748,7 @@ header {
 
 .task-item {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   padding: 0.8rem 1rem;
@@ -945,6 +946,15 @@ header {
   flex-direction: column;
   gap: 0.3rem;
   overflow: hidden;
+}
+
+.task-details {
+  width: calc(100% - 3.5rem);
+  margin-left: 3.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .task-tags {
@@ -1767,10 +1777,10 @@ header {
     padding-top: 0.6rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start; /* Align left to utilize space under voting controls */
     align-items: center;
-    flex-wrap: nowrap;
-    gap: 0.4rem;
+    flex-wrap: nowrap; /* Keep on a single line on mobile */
+    gap: 0.5rem;
   }
 
   .task-summary-block {
@@ -1789,13 +1799,12 @@ header {
   }
 
   .task-actions-group {
-    gap: 0.6rem; /* Reduced to ensure all icons fit on one line */
+    display: contents; /* Make buttons direct children of .task-actions to prevent grouping/wrapping blocks */
   }
 
   .task-actions button {
-    font-size: 1.2rem;
-    /* Larger icons for mobile */
-    padding: 0.4rem;
+    font-size: 1.1rem; /* Slightly smaller for mobile */
+    padding: 0.35rem 0.25rem; /* Balanced touch targets that fit */
   }
 
   .task-vote-controls {
@@ -1805,6 +1814,25 @@ header {
   /* Ensure the drag handle doesn't shift weirdly */
   .drag-handle {
     margin-top: 0.2rem;
+  }
+
+  .task-details {
+    width: 100%;
+    margin-left: 0;
+    padding-top: 0.5rem;
+  }
+
+  /* Section Header responsive styles to prevent Export All button clipping */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+  }
+
+  .section-header-actions {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.5rem;
   }
 }
 
